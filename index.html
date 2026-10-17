@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reads</title>
+<link rel="stylesheet" href="shared/style.css">
+</head>
+<body>
+<main>
+  <h1>Reads</h1>
+  <p class="intro">Family reading trackers.</p>
+
+  <p id="loading" class="msg">Loading…</p>
+
+  <!-- Pick a person and type the PIN (sign-in needs internet) -->
+  <section id="signin" class="card" hidden aria-labelledby="signinTitle">
+    <h2 id="signinTitle">Who is reading?</h2>
+    <p class="problem" id="noNet" hidden>No internet connection. Sign-in needs internet.</p>
+    <div class="players" id="players" role="radiogroup" aria-label="Person"></div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <p class="msg" id="msg" role="status" aria-live="polite">Pick your name, then type your PIN.</p>
+    <div class="pad" id="pad"></div>
+  </section>
+</main>
+
+<script type="module">
+import * as L from './shared/lock.js';
+import { access, loadAuth } from './shared/load.js';
+
+const PLAYER_CODES = ['SL', 'CJ', 'YC', 'JY'];   // same order as shared/auth.js
+const PIN_LENGTH = 6;
+const LAST_KEY = 'rd-lastPlayer';                // remembers the last person on this device
+const NEXT_URL = 'readers/';
+const $ = id => document.getElementById(id);
+let selected = null, pin = '', busy = false;
+
+const state = await access();
+if (state.mode === 'online') location.replace(NEXT_URL);
+else showSignIn(state.mode === 'offline');
+
+function showSignIn(offline) {
+  buildPlayers();
+  buildPad();
+  $('noNet').hidden = !offline;
+  let last = null;
+  try { last = localStorage.getItem(LAST_KEY); } catch (e) {}
+  if (PLAYER_CODES.includes(last)) selectPlayer(last);
+  else setMsg('Pick your name, then type your PIN.');
+  $('loading').hidden = true;
+  $('signin').hidden = false;
+}
+
+function buildPlayers() {
+  const box = $('players');
+  box.innerHTML = '';
+  PLAYER_CODES.forEach(code => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', 'false');
+    b.dataset.code = code;
+    b.textContent = code;
+    b.addEventListener('click', () => selectPlayer(code));
+    box.appendChild(b);
+  });
+}
+
+function lockText(code) {
+  const st = L.lockState(code);
+  if (!st.locked) return null;
+  const min = Math.max(1, Math.ceil((st.until - Date.now()) / 60000));
+  return code + ' is locked for ' + min + ' more minute' + (min === 1 ? '' : 's') + ' (' + L.LOCK_FAILS + ' wrong PINs).';
+}
+
+function selectPlayer(code) {
+  selected = code;
+  document.querySelectorAll('#players button').forEach(b => {
+    b.setAttribute('aria-checked', String(b.dataset.code === code));
+  });
+  pin = '';
+  drawDots();
+  const lt = lockText(code);
+  if (lt) setMsg(lt, true);
+  else setMsg('Hi ' + code + '! Type your PIN.');
+}
+
+// Updates the lock message while a locked person is selected.
+setInterval(() => {
+  if ($('signin').hidden || !selected || busy) return;
+  const lt = lockText(selected);
+  if (lt) setMsg(lt, true);
+  else if ($('msg').classList.contains('bad') && /locked/.test($('msg').textContent)) setMsg('Hi ' + selected + '! Type your PIN.');
+}, 20000);
+
+function buildPad() {
+  const pad = $('pad');
+  pad.innerHTML = '';
+  // Same layout as a keyboard's numeric keypad (and Kids Games): 7 8 9 on top, 0 at the bottom.
+  ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'clear', '0', 'back'].forEach(k => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (k === 'clear') { b.textContent = 'Clear'; b.className = 'small'; b.setAttribute('aria-label', 'Clear PIN'); }
+    else if (k === 'back') { b.textContent = '⌫'; b.setAttribute('aria-label', 'Delete last digit'); }
+    else b.textContent = k;
+    b.dataset.key = k;
+    b.addEventListener('click', () => press(k));
+    pad.appendChild(b);
+  });
+  $('dots').innerHTML = '<span></span>'.repeat(PIN_LENGTH);
+  drawDots();
+}
+
+function drawDots() {
+  document.querySelectorAll('#dots span').forEach((s, i) => s.classList.toggle('on', i < pin.length));
+}
+
+function setMsg(text, bad) {
+  const m = $('msg');
+  m.textContent = text;
+  m.classList.toggle('bad', !!bad);
+}
+
+function setBusy(on) {
+  busy = on;
+  document.querySelectorAll('#pad button, #players button').forEach(b => { b.disabled = on; });
+}
+
+function press(k) {
+  if (busy) return;
+  if (k === 'clear') { pin = ''; drawDots(); return; }
+  if (k === 'back') { pin = pin.slice(0, -1); drawDots(); return; }
+  if (!selected) { setMsg('Pick your name first.', true); return; }
+  const lt = lockText(selected);
+  if (lt) { pin = ''; drawDots(); setMsg(lt, true); return; }
+  if (pin.length >= PIN_LENGTH) return;
+  pin += k;
+  drawDots();
+  if (pin.length === PIN_LENGTH) submit();
+}
+
+// Keyboard: digits, Backspace, Escape.
+document.addEventListener('keydown', e => {
+  if ($('signin').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^[0-9]$/.test(e.key)) { press(e.key); e.preventDefault(); }
+  else if (e.key === 'Backspace') { press('back'); e.preventDefault(); }
+  else if (e.key === 'Escape') { press('clear'); }
+});
+
+const WRONG_PIN = ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-login-credentials'];
+
+async function submit() {
+  const code = selected;
+  setBusy(true);
+  setMsg('Checking…');
+  let auth = null;
+  try {
+    auth = state.auth || await loadAuth();
+    if (!auth) throw Object.assign(new Error('no-firebase'), { code: 'auth/network-request-failed' });
+    await auth.signIn(code, pin);
+    L.recordSuccess(code);
+    try { localStorage.setItem(LAST_KEY, code); } catch (e) {}
+    pin = '';
+    location.replace(NEXT_URL);
+    return;
+  } catch (e) {
+    console.error('[reads] Sign-in failed:', e && e.code, e);
+    pin = '';
+    drawDots();
+    const dots = $('dots');
+    dots.classList.remove('shake'); void dots.offsetWidth; dots.classList.add('shake');
+    let text = messageFor(e);
+    if (e && WRONG_PIN.includes(e.code)) {
+      const st = L.recordFail(code);
+      text = st.locked ? lockText(code)
+        : 'Wrong PIN. ' + st.left + ' ' + (st.left === 1 ? 'try' : 'tries') + ' left before a ' + L.LOCK_MINUTES + '-minute lock.';
+    }
+    setMsg(text, true);
+    if (e && e.message === 'no-player-record' && auth) await auth.signOutPlayer().catch(() => {});
+  } finally {
+    setBusy(false);
+  }
+}
+
+function messageFor(e) {
+  const code = (e && e.code) || '';
+  if (e && e.message === 'no-player-record') return 'This person is not set up yet.';
+  if (code === 'auth/too-many-requests') return 'Too many tries. Wait a few minutes, then try again.';
+  if (code === 'auth/network-request-failed' || code === 'app/timeout') return 'No internet connection. Sign-in needs internet.';
+  return 'Sign-in did not work. Try again.';
+}
+</script>
+</body>
+</html>

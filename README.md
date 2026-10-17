@@ -23,7 +23,8 @@ reads/
 ├── readers/index.html  Table of contents: pick whose tracker to open
 ├── tracker/index.html  One person's tracker (placeholder), for example tracker/?reader=YC
 ├── shared/
-│   ├── auth.js         Firebase: sign-in, sign-out, player lookup, page guard, signed-in bar
+│   ├── auth.js         Firebase: sign-in, sign-out, player lookup
+│   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
 │   └── style.css       Shared styles, light and dark
 ├── .nojekyll           Tells GitHub Pages not to run Jekyll

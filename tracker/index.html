@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracker · Reads</title>
+<link rel="stylesheet" href="../shared/style.css">
+</head>
+<body>
+<main>
+  <p><a href="../readers/">← All readers</a></p>
+  <h1 id="title">Tracker</h1>
+
+  <p id="loading" class="msg">Loading…</p>
+  <p id="problem" class="problem" hidden role="alert"></p>
+
+  <section id="content" hidden>
+    <div id="who"></div>
+    <!-- PLACEHOLDER (2026-10-16): the wishlist and library tracking are not built yet. -->
+    <p class="intro" id="note">This tracker is not built yet. The wishlist and library tracking come next.</p>
+  </section>
+</main>
+
+<script type="module">
+import { requirePlayer, mountBar } from '../shared/load.js';
+
+const PLAYER_CODES = ['SL', 'CJ', 'YC', 'JY'];
+const $ = id => document.getElementById(id);
+
+const ctx = await requirePlayer($('problem'));
+$('loading').hidden = true;
+if (ctx) {
+  const reader = new URLSearchParams(location.search).get('reader');
+  if (!PLAYER_CODES.includes(reader)) {
+    location.replace('../readers/');
+  } else {
+    document.title = reader + ' · Reads';
+    $('title').textContent = reader + '’s reading';
+    mountBar($('who'), ctx);
+    $('content').hidden = false;
+  }
+}
+</script>
+</body>
+</html>

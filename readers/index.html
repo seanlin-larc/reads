@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Readers · Reads</title>
+<link rel="stylesheet" href="../shared/style.css">
+</head>
+<body>
+<main>
+  <h1>Reads</h1>
+  <p class="intro">Pick whose wishlist and reading tracker to open.</p>
+
+  <p id="loading" class="msg">Loading…</p>
+  <p id="problem" class="problem" hidden role="alert"></p>
+
+  <section id="content" hidden>
+    <div id="who"></div>
+    <!--
+      One card for each person. The list comes from PLAYER_CODES in the script below,
+      in the same order as shared/auth.js. Each card opens ../tracker/?reader=CODE.
+    -->
+    <ul class="readers" id="readers" aria-label="Readers"></ul>
+  </section>
+</main>
+
+<script type="module">
+import { requirePlayer, mountBar } from '../shared/load.js';
+
+const PLAYER_CODES = ['SL', 'CJ', 'YC', 'JY'];
+const $ = id => document.getElementById(id);
+
+const ctx = await requirePlayer($('problem'));
+$('loading').hidden = true;
+if (ctx) {
+  mountBar($('who'), ctx);
+  const list = $('readers');
+  PLAYER_CODES.forEach(code => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '../tracker/?reader=' + encodeURIComponent(code);
+    const c = document.createElement('span');
+    c.className = 'code';
+    c.textContent = code;
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = 'Wishlist and tracker';
+    a.append(c, label);
+    if (code === ctx.player.code) {
+      const you = document.createElement('span');
+      you.className = 'you';
+      you.textContent = 'You';
+      a.append(you);
+      a.setAttribute('aria-label', code + ', wishlist and tracker (you)');
+    } else {
+      a.setAttribute('aria-label', code + ', wishlist and tracker');
+    }
+    li.append(a);
+    list.append(li);
+  });
+  $('content').hidden = false;
+}
+</script>
+</body>
+</html>
