@@ -50,6 +50,18 @@ books, errors = iw.parse("| Reader | Title | # | Status |\n|---|---|---|---|\n| 
 check("import file: bad rows reported with line numbers",
       len(errors) == 3 and "line 3" in errors[0] and "ZZ" in errors[0] and "no title" in errors[1] and "two" in errors[2] and "Ready" in errors[2], errors)
 check("import file: status spelling EBook", [b["status"] for b in books] == ["EBook"], books)
+books, errors = iw.parse("| Title | Reader | Status |\n|---|---|---|\n| A | | Hold |\n| B | SL | |\n", "YC")
+check("import file: --reader fills rows with no reader; a Reader value wins",
+      not errors and [(b["title"], b["reader"]) for b in books] == [("A", "YC"), ("B", "SL")], (books, errors))
+books, errors = iw.parse("| Title |\n|---|\n| A |\n")
+check("import file: no reader and no --reader is an error", len(errors) == 1 and "--reader YC" in errors[0], errors)
+SCRIPT = os.path.join(REPO, "tools", "import_wishlist.py")
+with open(os.path.join(OUT, "no-reader.md"), "w", encoding="utf-8") as f:
+    f.write("| Title | Series | # | Author(s) | Status |\n|---|---|---|---|---|\n| Kid Lawyer | Theodore Boone | 1 | Grisham, John | Hold |\n")
+r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "no-reader.md"), "--check", "--reader", "yc"], capture_output=True, text=True)
+check("import --check --reader yc: file OK", r.returncode == 0 and "YC  Kid Lawyer" in r.stdout, r.stdout + r.stderr)
+r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "no-reader.md"), "--check", "--reader=XX"], capture_output=True, text=True)
+check("import --reader XX is refused", r.returncode == 2, r.stdout + r.stderr)
 
 def fake_route(route):
     name = route.request.url.rsplit("/", 1)[-1]

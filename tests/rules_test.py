@@ -142,6 +142,10 @@ check("second import adds nothing", code == 0 and "Added 0 books" in out and len
 code, out = run_import(SAMPLE.replace("| ebook |", "| Ready |").replace("| SL |", "| XX |"), "--write")
 check("bad file: errors listed, nothing written",
       code == 1 and "Ready" in out and "XX" in out and len(iw.list_books("YC", imp)) == 4, out)
+NO_READER = "| Title | Series | # | Author(s) |\n|---|---|---|---|\n| Ghost | Track | 1 | Reynolds, Jason |\n"
+code, out = run_import(NO_READER, "--write", "--reader", "YC")
+check("--reader YC: a file with no Reader column imports to YC",
+      code == 0 and "Added 1 books" in out and "Ghost" in {b["title"] for b in iw.list_books("YC", imp)}, out)
 env = dict(os.environ); env.pop("READS_IMPORT_PASSWORD", None)
 r = subprocess.run([sys.executable, os.path.join(REPO, "tools", "import_wishlist.py"), "/dev/null"], capture_output=True, text=True, env=env)
 check("empty file: no books found", r.returncode == 1 and "No books found" in r.stdout, r.stdout)

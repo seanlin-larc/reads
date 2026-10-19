@@ -15,7 +15,7 @@ python tests/run.py
 - It prints `PASS` or `FAIL` for each check, then a total. The exit code is 1 if a check fails.
 - Screenshots (phone size, light and dark) go to `tests/out/`. That folder is not committed.
 
-Last result (Claude, 2026-10-19): 67 of 67 passed.
+Last result (Claude, 2026-10-19): 71 of 71 passed.
 
 ## What the fake Firebase does
 
@@ -41,11 +41,11 @@ firebase emulators:exec --config firebase/firebase.json --project demo-reads --o
 - The project ID starts with `demo-`, so the emulators never contact the real Firebase project. The test accounts and password exist only in the emulator.
 - The first run downloads the emulators (about 60 MB) from Google.
 
-Last result (Claude, 2026-10-19): 37 of 37 passed. Also checked once by hand (not in the repo): the real Firebase SDK 13.0.0 in Chromium against the emulator, with the same calls as `shared/auth.js` (offline copy, live list, status change, Undo, a refused change).
+Last result (Claude, 2026-10-19): 38 of 38 passed. Also checked once by hand (not in the repo): the real Firebase SDK 13.0.0 in Chromium against the emulator, with the same calls as `shared/auth.js` (offline copy, live list, status change, Undo, a refused change).
 
 ## Not covered
 
-- Real Firebase sign-in and the real Firestore. Test on the live site with a real PIN after Sean publishes the rules.
+- Real Firebase sign-in and the real Firestore. Test on the live site with a real PIN.
 - The offline copy on a real iPhone (no signal in the library).
 
 ## When you change the pages

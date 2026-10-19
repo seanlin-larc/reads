@@ -9,6 +9,7 @@ Usage:
   python tools/import_wishlist.py FILE            dry run: show what the import would add
   python tools/import_wishlist.py FILE --write    add the books
   python tools/import_wishlist.py FILE --check    only read and check the file (no network)
+  Add --reader YC when the file has no Reader column (for example the file in yc-reading/).
 
 Sign-in: the import account import@family-reading.invalid. Its password comes from the
 environment variable READS_IMPORT_PASSWORD (a secret in the Claude Code environment settings).
@@ -21,7 +22,7 @@ the Firebase emulators, not the real project (see tests/README.md).
 File format: a Markdown table. The column names can be in any order; case does not matter.
   | Reader | Title | Series | # | Author(s) | Status |
   | YC | Kid Lawyer | Theodore Boone | 1 | Grisham, John | Hold |
-- Reader: SL, CJ, YC or JY. Title: required.
+- Reader: SL, CJ, YC or JY. Optional when you give --reader. Title: required.
 - Series and #: empty for a book that is not in a series.
 - Author(s): "Last, First". More than one author: "Black, Holly; Clare, Cassandra".
 - Status: None, Hold, EBook, Reading or Finished. Empty = None.
@@ -59,8 +60,9 @@ def cells(line):
     if line.endswith("|"): line = line[:-1]
     return [c.replace("\0", "|").strip() for c in line.split("|")]
 
-def parse(text):
-    """Returns (books, errors). Each book is a dict with the Firestore fields plus 'reader'."""
+def parse(text, reader=None):
+    """Returns (books, errors). Each book is a dict with the Firestore fields plus 'reader'.
+    reader: the code to use for rows with no Reader value (from --reader), or None."""
     books, errors, cols = [], [], None
     for n, line in enumerate(text.splitlines(), 1):
         if not line.strip().startswith("|"):
@@ -76,6 +78,8 @@ def parse(text):
         raw = {f: ("" if v in ("—", "-") else v) for f, v in zip(cols, row) if f}
         if not any(raw.values()):
             continue
+        if reader and not raw.get("reader"):
+            raw["reader"] = reader
         book, problems = check_row(raw)
         if problems:
             errors.append(f"line {n}: " + "; ".join(problems))
@@ -86,7 +90,9 @@ def parse(text):
 def check_row(raw):
     problems = []
     reader = raw.get("reader", "").upper()
-    if reader not in READERS:
+    if not reader:
+        problems.append("no reader: add a Reader column, or run the script with --reader YC")
+    elif reader not in READERS:
         problems.append(f"reader '{raw.get('reader', '')}' is not SL, CJ, YC or JY")
     title = raw.get("title", "")
     if not title:
@@ -204,13 +210,22 @@ def describe(b):
     return s + f"  [{b['status']}]"
 
 def main(argv):
-    args = [a for a in argv if not a.startswith("--")]
-    flags = {a for a in argv if a.startswith("--")}
-    if len(args) != 1 or flags - {"--write", "--check"}:
+    args, flags, reader = [], set(), None
+    items = iter(argv)
+    for a in items:
+        if a == "--reader":
+            reader = next(items, "").upper()
+        elif a.startswith("--reader="):
+            reader = a.split("=", 1)[1].upper()
+        elif a.startswith("--"):
+            flags.add(a)
+        else:
+            args.append(a)
+    if len(args) != 1 or flags - {"--write", "--check"} or (reader is not None and reader not in READERS):
         print(__doc__.split("\n\n")[2])
         return 2
     with open(args[0], encoding="utf-8") as f:
-        books, errors = parse(f.read())
+        books, errors = parse(f.read(), reader)
     if errors:
         print("The file has problems. Nothing was imported. Fix these lines:")
         for e in errors: print("  " + e)

@@ -2,7 +2,7 @@ rules_version = '2';
 
 // Firestore rules for Reads (Firebase project family-reading-f4748).
 // Claude writes and tests these rules. Sean publishes them in the Firebase console.
-// Test: see tests/README.md, "Firestore rules".
+// Test: see tests/README.md, "Firestore rules test (emulator)".
 //
 // Data: readers/{code}/books/{bookId}, one document for each book for each reader.
 // Who can do what:
