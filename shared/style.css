@@ -28,7 +28,7 @@ footer{margin-top:28px;font-size:.85rem;color:var(--muted)}
 .rd-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
   margin:0 0 18px;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .rd-bar button{font:inherit;font-size:.9rem;padding:6px 12px;border-radius:8px;border:1px solid var(--line);
-  background:var(--bg);color:inherit;cursor:pointer;min-height:36px}
+  background:var(--bg);color:inherit;cursor:pointer;min-height:44px}
 .rd-bar button:disabled{opacity:.55;cursor:default}
 
 /* ---------- sign-in card ---------- */
@@ -62,3 +62,47 @@ footer{margin-top:28px;font-size:.85rem;color:var(--muted)}
 .readers .label{font-size:.95rem}
 .readers .you{font-size:.8rem;color:var(--muted)}
 @media (max-width:340px){.readers{grid-template-columns:1fr}}
+
+/* ---------- book lists (tracker/ and history/) ---------- */
+:root{ --st-None:#6f675e; --st-Hold:#9a6700; --st-EBook:#7c3aed; --st-Reading:#0b62c4; --st-Finished:#1a7f37; --on-st:#fff; }
+@media (prefers-color-scheme: dark){
+  :root{ --st-None:#a79e93; --st-Hold:#e3b341; --st-EBook:#b392f0; --st-Reading:#6cb6ff; --st-Finished:#4ac26b; --on-st:#1b1916; }
+}
+.listhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+.count{color:var(--muted);font-size:.9rem}
+.navbtn{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel);color:inherit;text-decoration:none;font-size:.95rem}
+.books{list-style:none;margin:0;padding:0 0 90px}
+.book{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:10px;margin-bottom:6px}
+.book .grow{flex:1;min-width:0}
+.book .t{font-weight:600}
+.book .m{font-size:.86rem;color:var(--muted)}
+.status{font:inherit;min-height:44px;min-width:96px;padding:0 10px;border-radius:999px;border:0;color:var(--on-st);
+  font-weight:700;font-size:.9rem;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.status::after{content:" ▾";font-size:.75em}
+.st-None{background:var(--st-None)} .st-Hold{background:var(--st-Hold)} .st-EBook{background:var(--st-EBook)}
+.st-Reading{background:var(--st-Reading)} .st-Finished{background:var(--st-Finished)}
+.empty{color:var(--muted);text-align:center;padding:24px 0}
+/* status flipper: a panel at the bottom of the screen */
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-width:640px;margin:0 auto;background:var(--panel);
+  border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet h2{margin:0 0 2px;font-size:1.05rem}
+.sheet .m{font-size:.86rem;color:var(--muted)}
+.flip{display:grid;gap:8px;margin:12px 0}
+.flip button,.sheet .two button,.sheet .close{font:inherit;min-height:52px;border-radius:12px;cursor:pointer;color:inherit;font-weight:600}
+.flip button{border:2px solid var(--line);background:none;text-align:left;padding:0 14px}
+.flip button[aria-pressed="true"]{color:var(--on-st)}
+.flip small{font-weight:400;opacity:.85}
+.ask{margin:12px 0;font-size:1rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet .two button,.sheet .close{border:1px solid var(--line);background:var(--bg)}
+.sheet .two .yes{border:0;color:var(--on-st)}
+.sheet .close{width:100%}
+/* "Undo" bar after a change */
+.undo{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:9;max-width:608px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--text);color:var(--bg);
+  border-radius:12px;padding:6px 6px 6px 12px;font-size:.9rem}
+.undo button{font:inherit;min-height:44px;padding:0 14px;border:0;border-radius:10px;background:var(--bg);color:var(--text);
+  font-weight:700;cursor:pointer}

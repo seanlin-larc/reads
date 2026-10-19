@@ -1,0 +1,3 @@
+# Firebase emulator logs and Python cache
+*-debug.log
+__pycache__/

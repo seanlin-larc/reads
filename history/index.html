@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reading History · Reads</title>
+<link rel="stylesheet" href="../shared/style.css">
+</head>
+<body>
+<main>
+  <p><a href="../tracker/" id="back">← Wishlist</a></p>
+  <h1 id="title">Reading History</h1>
+
+  <p id="loading" class="msg">Loading…</p>
+  <p id="problem" class="problem" hidden role="alert"></p>
+
+  <section id="content" hidden>
+    <div id="who"></div>
+    <div class="listhead"><span class="count" id="count"></span></div>
+    <ul class="books" id="books" aria-label="Reading History"></ul>
+  </section>
+</main>
+
+<script type="module">
+// One reader's Reading History: the books with status Finished, newest first.
+// Read only. A book comes here when someone sets it to Finished on the wishlist.
+import { requirePlayer, mountBar } from '../shared/load.js';
+import { readerFromUrl, history, bookInfo } from '../shared/books.js';
+
+const $ = id => document.getElementById(id);
+
+function show(problem) {
+  $('count').textContent = '';
+  $('problem').hidden = false;
+  $('problem').textContent = problem;
+}
+
+function render(books) {
+  const list = history(books);
+  $('count').textContent = list.length === 1 ? '1 book finished' : list.length + ' books finished';
+  const ul = $('books');
+  ul.textContent = '';
+  if (!list.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = 'No finished books yet.';
+    ul.append(li);
+  }
+  for (const b of list) {
+    const li = document.createElement('li');
+    li.className = 'book';
+    const info = bookInfo(b);
+    if (b.finishedOn) {
+      const d = document.createElement('div');
+      d.className = 'm';
+      d.textContent = (b.readOn ? 'Read ' + b.readOn + ' → finished ' : 'Finished ') + b.finishedOn;
+      info.append(d);
+    }
+    li.append(info);
+    ul.append(li);
+  }
+}
+
+const ctx = await requirePlayer($('problem'));
+$('loading').hidden = true;
+if (ctx) {
+  const reader = readerFromUrl();
+  if (!reader) {
+    location.replace('../readers/');
+  } else {
+    document.title = reader + ' Reading History · Reads';
+    $('title').textContent = reader + '’s Reading History';
+    $('back').href = '../tracker/?reader=' + reader;
+    $('back').textContent = '← ' + reader + '’s wishlist';
+    mountBar($('who'), ctx);
+    $('content').hidden = false;
+    $('count').textContent = 'Loading…';
+    try {
+      await ctx.auth.watchBooks(reader, render, e => {
+        console.warn('[reads] Books did not load:', e);
+        show(e && e.code === 'permission-denied'
+          ? 'Firestore refused access to the books. The Firestore rules may not be published yet.'
+          : 'The books did not load. Reload the page to try again.');
+      });
+    } catch (e) {
+      console.warn('[reads] Firestore did not load:', e);
+      show('No internet connection. Reads needs internet. Reload the page to try again.');
+    }
+  }
+}
+</script>
+</body>
+</html>

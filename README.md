@@ -1,22 +1,22 @@
 # Reads
 
-Family reading trackers: wishlists, library holds and checkouts, for each family member. Static web pages on GitHub Pages, with Firebase for sign-in and (later) the data.
+Family reading trackers: wishlists, library holds and checkouts, for each family member. Static web pages on GitHub Pages, with Firebase for sign-in and the data (Firestore).
 
 - Site: https://seanlin-larc.github.io/reads/
 - Notes and decisions: `projects/reading-tracker/` in the private `notes-with-llm` repo.
 
-## Status (2026-10-18)
+## Status (2026-10-19)
 
 | Part | Status |
 |---|---|
 | Firebase project `family-reading-f4748` | Created (Sean, 2026-10-18). See "Firebase settings" |
 | Sign-in page (`index.html`) | Built. Uses the `family-reading` project |
 | Reader list, the table of contents (`readers/`) | Built |
-| One reader's tracker (`tracker/?reader=YC`) | Placeholder only. Not built |
-| Firestore data model and wishlist display | Decided by Sean (2026-10-19). Not built. See `docs/` |
-| Firestore rules for tracker data | Not written |
+| Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built on branch `claude/cool-lamport-9imnef` (2026-10-19). Not live yet. Design: `docs/2026-10-19_data-model-and-wishlist-options.md` |
+| Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator (2026-10-19). **Not published.** Sean publishes them in the console |
+| Import script (`tools/import_wishlist.py`) | Built. Needs the import account and `READS_IMPORT_PASSWORD` (see below) |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
-| Tests (`tests/run.py`) | 31 of 31 passed (2026-10-18), fake Firebase |
+| Tests | `tests/run.py`: 67 of 67 passed (2026-10-19), fake Firebase. `tests/rules_test.py`: 37 of 37 passed (2026-10-19), Firebase emulators |
 
 ## Folder structure
 
@@ -24,15 +24,23 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 reads/
 ├── index.html          Sign-in: pick a person, type the PIN
 ├── readers/index.html  Table of contents: pick whose tracker to open
-├── tracker/index.html  One person's tracker (placeholder), for example tracker/?reader=YC
+├── tracker/index.html  One person's wishlist with the status flipper, for example tracker/?reader=YC
+├── history/index.html  One person's Reading History (Finished books), for example history/?reader=YC
 ├── shared/
-│   ├── auth.js         Firebase: config, sign-in, sign-out, who is signed in
+│   ├── auth.js         Firebase: config, sign-in, sign-out, who is signed in, books (Firestore)
+│   ├── books.js        Status values, list order and book rows for the two book pages (no Firebase)
 │   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
 │   └── style.css       Shared styles, light and dark
+├── firebase/
+│   ├── firestore.rules Firestore rules. Sean publishes them in the Firebase console
+│   └── firebase.json   Emulator settings for the rules test (not for deploy)
+├── tools/
+│   └── import_wishlist.py  Adds books from toWebWishList.md to Firestore (Claude runs it)
 ├── docs/               Design notes and mockups (not part of the app)
-├── tests/              Browser tests with fake Firebase (see tests/README.md)
+├── tests/              Browser tests with fake Firebase, rules test (see tests/README.md)
 ├── .nojekyll           Tells GitHub Pages not to run Jekyll
+├── .gitignore          Emulator logs and Python cache
 ├── CLAUDE.md           Instructions for Claude Code
 └── README.md
 ```
@@ -46,15 +54,21 @@ reads/
 - An account that is not one of the four emails is signed out, and the sign-in page shows.
 - **Wrong-PIN lock:** 10 wrong PINs in a row lock that person for 30 minutes, on this device only (`localStorage` key `rd-lock`). This is a check in the page, not a server check.
 
+## Books and import
+
+- Each book is a Firestore document `readers/{code}/books/{bookId}`. Status values: `None`, `Hold`, `EBook`, `Reading`, `Finished`. Details: `docs/2026-10-19_data-model-and-wishlist-options.md`.
+- Everyone can change the status of every book. Nobody can add or delete books on the page.
+- New books come from `notes-with-llm/projects/yc-reading/toWebWishList.md`. Claude runs `tools/import_wishlist.py` when Sean asks. The script signs in as `import@family-reading.invalid`. Its password is the environment variable `READS_IMPORT_PASSWORD` in the Claude Code environment settings. It is never in this repo.
+
 ## Firebase settings (Sean, 2026-10-18)
 
 | Setting | Value |
 |---|---|
 | Project | `family-reading` (ID `family-reading-f4748`) |
-| Authentication | Email/Password on. Four accounts as above. Sign-up and delete turned off (User actions) |
+| Authentication | Email/Password on. Four accounts as above. Sign-up and delete turned off (User actions). To add (Sean): `import@family-reading.invalid` for the import script |
 | Firestore | `(default)` database, `us-west1` |
 | API key | "Browser key (auto created by Firebase)". Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*` (set 2026-10-18) |
-| Security rules | Not written yet. Planned: allow only the four emails above. Sean publishes rules in the console |
+| Security rules | Written in `firebase/firestore.rules` (2026-10-19). Not published yet. Sean publishes rules in the console |
 
 - The API key is not a secret. The Firestore rules protect the data.
 - The Websites restriction uses the whole site (`/*`), not `/reads/*`. Browsers usually send only the site address, not the page path, to Google's servers, so a path rule could block this site.

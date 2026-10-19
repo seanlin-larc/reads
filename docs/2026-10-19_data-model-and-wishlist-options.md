@@ -1,38 +1,41 @@
 # Wishlist design and Firestore data model
 
-Claude, 2026-10-19. Status: **decided by Sean (2026-10-19)**, except the open questions in section 4. The tracker page is not built yet.
+Claude, 2026-10-19. Status: **decided by Sean (2026-10-19)** and built: `tracker/`, `history/`, `firebase/firestore.rules`, `tools/import_wishlist.py`.
 
-Mockup: [`mockups/wishlist.html`](mockups/wishlist.html). Open it with the local test server (`python -m http.server 8000`, then `http://localhost:8000/docs/mockups/wishlist.html`), or open the file directly. It needs no Firebase.
+Mockup (before the build): [`mockups/wishlist.html`](mockups/wishlist.html). It needs no Firebase.
 
 ## 1. Decisions (Sean, 2026-10-19)
 
 - The page is a management portal for the wishlist and the reading history only. Discussion of recommendations stays in LLM chats and in `notes-with-llm/projects/yc-reading`.
 - Only books that Sean and YC are interested in go on the wishlist. There are no `Declined` rows.
 - Display: option C. Each book shows only the title, the series and number in the series, the author(s), and a status button. The status button opens the status flipper.
-- Five status values, in Title case: `None`, `Hold`, `Ebook`, `Reading`, `Finished`.
+- Five status values, in Title case: `None`, `Hold`, `EBook`, `Reading`, `Finished`. The spelling is `EBook`.
+- Wishlist order: `Hold`, `EBook`, `None`, then `Reading` at the bottom.
 - "Reading" and "Finished" ask for one more confirmation.
 - A book that is set to "Finished" leaves the wishlist and goes to the reading history.
 - The log button is named "Reading History".
 - No loan dates: no `ready` status, no due date, no return date. Reading speed comes later from the reading history.
+- Add books: Sean writes them in `notes-with-llm/projects/yc-reading/toWebWishList.md`. Claude imports them with a script when Sean asks.
+- Not needed for now: remove a book, edit a book, move a finished book back to the wishlist.
 
 ## 2. How status changes
 
 | Status | Meaning | When to set it |
 |---|---|---|
-| `None` | On the wishlist | The book is chosen from the recommendations |
+| `None` | On the wishlist | The book is imported (the usual start) |
 | `Hold` | Hold placed | A physical copy is on hold at the library |
-| `Ebook` | Only an ebook | The library has no physical copy |
+| `EBook` | Only an ebook | The library has no physical copy |
 | `Reading` | Checked out | The book is checked out. **Asks to confirm.** Sets `readOn` |
 | `Finished` | Finished and returned | **Asks to confirm.** Sets `finishedOn`. The book moves to Reading History |
 
 ```mermaid
 stateDiagram-v2
   direction LR
-  [*] --> None: chosen
+  [*] --> None: imported
   None --> Hold: hold placed
-  None --> Ebook: only an ebook
+  None --> EBook: only an ebook
   Hold --> Reading: checked out (confirm)
-  Ebook --> Reading: started (confirm)
+  EBook --> Reading: started (confirm)
   Reading --> Finished: finished and returned (confirm)
   Finished --> [*]: to Reading History
 ```
@@ -47,7 +50,7 @@ One document is one book for one reader:
 readers/{code}/books/{bookId}
 ```
 
-- `{code}` is `SL`, `CJ`, `YC` or `JY`. `{bookId}` is an automatic Firestore ID.
+- `{code}` is `SL`, `CJ`, `YC` or `JY`. `{bookId}` is an automatic ID.
 - The wishlist and Reading History use the same documents. "Finished" changes one field. Nothing is copied or deleted.
 - The same book on two people's lists is two documents.
 
@@ -56,52 +59,70 @@ readers/{code}/books/{bookId}
 | `title` | text | `Kid Lawyer` | Required. Shown |
 | `author` | text | `Black, Holly; Clare, Cassandra` | `Last, First`. More than one author: separate with `; `. Shown |
 | `series` | text | `Theodore Boone` | Empty text when not in a series. Shown |
-| `seriesNo` | number or null | `1` | Shown as `#1` |
-| `status` | text | `Reading` | `None`, `Hold`, `Ebook`, `Reading` or `Finished`. Shown as the status button |
-| `readOn` | date text | `2026-10-02` | Set when the status becomes `Reading` (the checkout date) |
-| `finishedOn` | date text | `2026-10-25` | Set when the status becomes `Finished` (the return date) |
-| `addedOn` | date text | `2026-10-19` | Not shown. Keeps the order of new books |
-| `updatedAt`, `updatedBy` | server time, code | `SL` | Not shown. Everyone can edit every list, so this records who made the last change |
+| `seriesNo` | whole number or null | `1` | Shown as `#1` |
+| `status` | text | `Reading` | `None`, `Hold`, `EBook`, `Reading` or `Finished`. Shown as the status button |
+| `readOn` | date text or null | `2026-10-02` | Set when the status becomes `Reading` (the checkout date) |
+| `finishedOn` | date text or null | `2026-10-25` | Set when the status becomes `Finished` (the return date) |
+| `addedOn` | date text | `2026-10-19` | Set by the import. Not shown |
+| `updatedAt`, `updatedBy` | server time, code | `SL` | Not shown. Records who made the last change (`import` for the import) |
 
 Dates are text (`YYYY-MM-DD`), not Firestore Timestamps. A date-only Timestamp saved at midnight UTC shows as the day before in Vancouver. Text dates sort correctly and are easy to read in the console.
 
-Removed from the proposal (Sean, 2026-10-19): the `reading` field, the `ready` status, `holdOn`, `readyOn`, `outOn` (same as `readOn`), `dueOn`, `returnedOn` (same as `finishedOn`), `startedOn` (same as `readOn`) and `note`.
-
 | Page | Shows | Order |
 |---|---|---|
-| Wishlist (`tracker/?reader=YC`) | Status is not `Finished` | `Reading`, `Hold`, `Ebook`, `None`; then series (or title) A to Z; then series number |
-| Reading History | Status is `Finished` | Newest `finishedOn` first. Imported books with no date go last |
+| Wishlist (`tracker/?reader=YC`) | Status is not `Finished` | `Hold`, `EBook`, `None`, `Reading`; then series (or title) A to Z; then series number |
+| Reading History (`history/?reader=YC`) | Status is `Finished` | Newest `finishedOn` first. Books with no date go last |
 
-The page reads all of one person's books (about 100 to 200 documents) and filters them on the phone. This needs no Firestore index.
+The page reads all of one person's books and filters them on the phone. This needs no Firestore index. Changes from another phone show at once.
 
-### Firestore rules (plan)
+**Phone in the library.** The pages keep a copy of the books on the phone (Firestore `persistentLocalCache`). With no signal, the list still shows, and status changes are saved when the signal comes back ([Firebase: Access data offline](https://firebase.google.com/docs/firestore/manage-data/enable-offline)).
 
-The file will be `firebase/firestore.rules`, tested with the Firestore emulator. Sean publishes it in the Firebase console.
+## 4. Firestore rules (`firebase/firestore.rules`)
 
-- Allow read and write on `readers/{code}/books/{bookId}` only when the email is one of the four accounts, and `code` is `SL`, `CJ`, `YC` or `JY`.
-- On write, allow only the five status values, and require `title` to be text.
+| Who | Read | Change status | Add a book | Delete |
+|---|---|---|---|---|
+| SL, CJ, YC, JY | Every list | Every list. Only `status`, `readOn`, `finishedOn`, `updatedAt`, `updatedBy` | No | No |
+| Import account `import@family-reading.invalid` | Every list | No | Yes, with checked fields | No |
+| Anyone else, or signed out | No | No | No | No |
 
-### Phone in the library
+- Status must be one of the five values. Dates must be like `2026-10-19`, or null.
+- A new book can have only the fields in section 3. There is no "reason" field.
+- The Firebase console can still delete or edit a book, because the console does not use the rules.
+- Tested with the Firestore emulator: `tests/rules_test.py` (see `tests/README.md`).
 
-The Firestore web SDK can keep a local copy and queue changes while offline (`persistentLocalCache`). The changes save when the signal comes back ([Firebase: Access data offline](https://firebase.google.com/docs/firestore/manage-data/enable-offline)). Plan: turn it on.
+## 5. Import (`tools/import_wishlist.py`)
 
-### Import from `notes-with-llm` (one time, later)
+Sean writes the books in `notes-with-llm/projects/yc-reading/toWebWishList.md`, as a Markdown table:
 
-| `suggestions.md` | Firestore `status` |
-|---|---|
-| `Library status` `On hold` | `Hold` |
-| `Library status` `EBook` | `Ebook` |
-| `Library status` `Checked out`, or `Status / feedback` `In progress` | `Reading` (no `readOn`) |
-| `Library status` `—`, `Status / feedback` `To consider` or `Interested` | `None` |
-| `Status / feedback` `Read` | `Finished` |
-| `Status / feedback` `Declined` | Not imported |
+```
+| Reader | Title | Series | # | Author(s) | Status |
+| --- | --- | --- | --- | --- | --- |
+| YC | Kid Lawyer | Theodore Boone | 1 | Grisham, John | |
+| YC | The Iron Trial | Magisterium | 1 | Black, Holly; Clare, Cassandra | Hold |
+| YC | The Westing Game | — | — | Raskin, Ellen | |
+```
 
-`reading-log.md` rows with `Finished` become `Finished` books with no dates. `Why it may fit` and `Suggested by` are not imported.
+- Columns can be in any order. Case does not matter.
+- `Status` is optional. Empty means `None`.
+- Optional columns `Read on` and `Finished on` (dates like `2026-10-19`), for books that go straight to Reading History.
+- `—` or `-` means empty.
+- Text before or after the table is ignored, so the file can have notes.
 
-## 4. Open questions for Sean
+When Sean asks, Claude runs:
 
-1. **Add a book.** How do new books get on the wishlist: an "Add book" form on the page, an import that Claude runs from `suggestions.md`, or both?
-2. **Remove a book.** Do you need a "Remove from wishlist" choice in the flipper, for a book you are no longer interested in?
-3. **Edit a book.** Do you need to fix a title, author or series number on the page, or only in the Firebase console?
-4. **Reading History.** Can a finished book move back to the wishlist (for a wrong "Finished" after the Undo bar is gone)?
-5. **Source of truth.** When the app is live, does it replace `suggestions.md` and `reading-log.md` for status? If yes, `llm-rules.md` in `notes-with-llm` must change.
+```
+python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishList.md          # dry run
+python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishList.md --write  # add
+```
+
+- A book that is already in Firestore (same reader, title, series and number) is skipped. So the same file can be imported again, and old rows can stay in the file.
+- If one row has a problem (unknown reader, unknown status, no title, a bad number or date), the script lists the lines and adds nothing.
+- The script signs in as the import account. The password comes from the environment variable `READS_IMPORT_PASSWORD`, never from the chat or the repo.
+
+## 6. What Sean must do before the app goes live
+
+1. **Publish the rules.** Firebase console → Firestore Database → Rules. Replace the text with `firebase/firestore.rules`, then Publish.
+2. **Make the import account.** Firebase console → Authentication → Users → Add user: email `import@family-reading.invalid`, a long random password (not a PIN).
+3. **Give the password to the import script.** Claude Code environment settings (the environment menu in the session title bar → Edit): add the environment variable `READS_IMPORT_PASSWORD` with that password. A new session picks it up. Do not paste the password in the chat.
+4. **Make `toWebWishList.md`**, then ask Claude to import it.
+5. **Ask Claude to merge to `main`** when you want the new pages live.

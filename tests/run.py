@@ -1,4 +1,4 @@
-"""Browser tests for the Reads sign-in, reader list and tracker pages.
+"""Browser tests for the Reads sign-in, reader list, wishlist and Reading History pages.
 
 Runs the real pages in headless Chromium. The Firebase SDK files from www.gstatic.com are
 replaced by the fake modules in tests/fake/ (no network, no real accounts, test PIN only).
@@ -26,6 +26,30 @@ results = []
 def check(name, ok, info=""):
     results.append((name, ok))
     print(("PASS " if ok else "FAIL ") + name + (("  -- " + str(info)) if not ok and info else ""))
+
+# 0. The import script reads toWebWishList.md (no network). Firestore writes: tests/rules_test.py.
+sys.path.insert(0, os.path.join(REPO, "tools"))
+import import_wishlist as iw
+books, errors = iw.parse("""Notes above the table are ignored.
+
+| Title | Reader | Author(s) | Series | # | Status |
+|:--|---|---|---|---|---|
+| Kid Lawyer | yc | Grisham, John | Theodore Boone | 1 | Hold |
+| The Iron Trial | YC | Black, Holly; Clare, Cassandra | Magisterium | 1 | |
+| Holes | SL | Sachar, Louis | — | — | finished |
+
+| Other table | Title? |
+|---|---|
+| x | y |
+""")
+check("import file: 3 books, columns in any order", not errors and [b["title"] for b in books] == ["Kid Lawyer", "The Iron Trial", "Holes"], (books, errors))
+check("import file: reader upper case, status names fixed, empty = None",
+      [(b["reader"], b["status"]) for b in books] == [("YC", "Hold"), ("YC", "None"), ("SL", "Finished")], books)
+check("import file: dash cells are empty", books[2]["series"] == "" and books[2]["seriesNo"] is None and books[0]["seriesNo"] == 1, books)
+books, errors = iw.parse("| Reader | Title | # | Status |\n|---|---|---|---|\n| ZZ | A | 1 | Hold |\n| YC | | 2 | Hold |\n| YC | B | two | Ready |\n| YC | C | 3 | Ebook |\n")
+check("import file: bad rows reported with line numbers",
+      len(errors) == 3 and "line 3" in errors[0] and "ZZ" in errors[0] and "no title" in errors[1] and "two" in errors[2] and "Ready" in errors[2], errors)
+check("import file: status spelling EBook", [b["status"] for b in books] == ["EBook"], books)
 
 def fake_route(route):
     name = route.request.url.rsplit("/", 1)[-1]
@@ -92,7 +116,7 @@ try:
         pg.wait_for_selector("#content:not([hidden])")
         pg.click('.readers a[href="../tracker/?reader=JY"]')
         pg.wait_for_selector("#content:not([hidden])")
-        check("tracker title for JY", pg.text_content("#title") == "JY’s reading", pg.text_content("#title"))
+        check("tracker title for JY", pg.text_content("#title") == "JY’s wishlist", pg.text_content("#title"))
         check("tracker bar shows YC", "Signed in as YC" in pg.text_content("#who"))
         pg.screenshot(path=os.path.join(OUT, "3-tracker.png"))
 
@@ -155,13 +179,131 @@ try:
         pg.click("#who button")
         pg.wait_for_url(BASE)
         pg.wait_for_selector("#signin:not([hidden])")
-        # 11c. no request to Firestore or the Kids Games project
-        bad = [r for r in reqs if "firestore" in r or "kidsgame" in r]
+        # 11c. no request to the real Firestore or the Kids Games project (the fake SDK files are allowed)
+        bad = [r for r in reqs if "firestore.googleapis" in r or "kidsgame" in r]
         check("no Firestore or Kids Games requests", not bad, bad)
 
         check("no page errors (online)", not errs, errs)
 
-        # 12. offline: Firebase cannot load
+        # 12. wishlist and Reading History with fake Firestore books (signed in as SL)
+        tc = b.new_context(viewport={"width": 390, "height": 844})
+        tc.route("https://www.gstatic.com/firebasejs/13.0.0/*", fake_route)
+        pt, terrs = new_page(tc)
+        pt.goto(BASE + "shared/style.css")
+        bk = lambda t, a, st, series="", no=None, **k: dict(title=t, author=a, status=st, series=series, seriesNo=no, **k)
+        db = {"readers/YC/books": {
+            "a": bk("Kid Lawyer", "Grisham, John", "Reading", "Theodore Boone", 1, readOn="2026-10-02"),
+            "b": bk("The Abduction", "Grisham, John", "EBook", "Theodore Boone", 2),
+            "c": bk("The Activist", "Grisham, John", "None", "Theodore Boone", 4),
+            "d": bk("Angel", "Patterson, James", "Hold", "Maximum Ride", 7),
+            "e": bk("The Westing Game", "Raskin, Ellen", "Hold"),
+            "f": bk("Ghost", "Reynolds, Jason", "None", "Track", 1),
+            "g": bk("Holes", "Sachar, Louis", "Finished"),
+            "h": bk("Wrath of the Triple Goddess", "Riordan, Rick", "Finished", "Percy Jackson", 7, readOn="2026-09-25", finishedOn="2026-10-15"),
+        }, "readers/SL/books": {"s": bk("Other list", "X", "None")}}
+        pt.evaluate("db => { localStorage.setItem('fake-db', JSON.stringify(db)); localStorage.setItem('fake-auth-user', JSON.stringify({uid:'uid-sl', email:'sl@family-reading.invalid'})); }", db)
+        pt.goto(BASE + "tracker/?reader=YC")
+        pt.wait_for_selector("#books .book")
+        titles = lambda: pt.eval_on_selector_all("#books .book .t", "els => els.map(e => e.textContent)")
+        status_of = lambda t: pt.evaluate("t => [...document.querySelectorAll('#books .book')].find(li => li.querySelector('.t').textContent === t)?.querySelector('.status').textContent", t)
+        tap_status = lambda t: pt.locator("#books .book", has_text=t).locator(".status").click()
+        writes = lambda: pt.evaluate("JSON.parse(localStorage.getItem('fake-writes') || '[]')")
+        today = pt.evaluate("new Date().toLocaleDateString('en-CA')")
+        check("wishlist title for YC", pt.text_content("#title") == "YC’s wishlist", pt.text_content("#title"))
+        check("wishlist order: Hold, EBook, None, Reading at the bottom",
+              titles() == ["Angel", "The Westing Game", "The Abduction", "The Activist", "Ghost", "Kid Lawyer"], titles())
+        check("wishlist hides Finished books; count", pt.text_content("#count") == "6 books", pt.text_content("#count"))
+        rows = pt.eval_on_selector_all("#books .book", "els => els.map(e => [...e.querySelectorAll('.t,.m')].map(x => x.textContent))")
+        check("row shows title, series and #, author", rows[0] == ["Angel", "Maximum Ride · #7", "Patterson, James"], rows[0])
+        check("row with no series shows title and author only", rows[1] == ["The Westing Game", "Raskin, Ellen"], rows[1])
+        check("Reading History link", pt.get_attribute("#historyLink", "href") == "../history/?reader=YC")
+        pt.screenshot(path=os.path.join(OUT, "6-wishlist.png"), full_page=True)
+
+        tap_status("Angel")
+        opts = pt.eval_on_selector_all("#sheet .flip button", "els => els.map(e => [e.firstChild.textContent.trim(), e.getAttribute('aria-pressed')])")
+        check("status button opens the flipper with 5 statuses",
+              pt.is_visible("#sheet") and opts == [["None", "false"], ["Hold", "true"], ["EBook", "false"], ["Reading", "false"], ["Finished", "false"]], opts)
+        pt.screenshot(path=os.path.join(OUT, "7-flipper.png"))
+        small = pt.evaluate("""[...document.querySelectorAll('.status, .navbtn, #sheet button, #who button')]
+            .filter(e => e.offsetParent).map(e => e.getBoundingClientRect()).filter(r => r.height < 44).length""")
+        check("tap targets at least 44 px", small == 0, small)
+        pt.click("#sheet .flip button:has-text('EBook')")
+        w = writes()[-1]
+        check("EBook: no confirm, saved at once", pt.is_hidden("#sheet") and w["path"] == "readers/YC/books/d"
+              and w["fields"]["status"] == "EBook" and w["fields"]["updatedBy"] == "SL" and w["fields"]["updatedAt"] == {"fakeServerTime": True}, w)
+        check("list follows the change", status_of("Angel") == "EBook" and titles()[1] == "Angel", titles())
+        check("Undo bar shows", pt.is_visible("#undo") and pt.text_content("#undoText") == "EBook: Angel", pt.text_content("#undoText"))
+        pt.click("#undoBtn")
+        check("Undo restores the status", status_of("Angel") == "Hold" and writes()[-1]["fields"] == {"status": "Hold", "readOn": None, "finishedOn": None, "updatedAt": {"fakeServerTime": True}, "updatedBy": "SL"}, writes()[-1])
+        n = len(writes())
+        tap_status("Angel")
+        pt.click("#sheet .flip button:has-text('Reading')")
+        check("Reading asks to confirm", pt.text_content("#sheet .ask") == "Checked out?" and len(writes()) == n, pt.text_content("#sheet"))
+        pt.screenshot(path=os.path.join(OUT, "8-confirm.png"))
+        pt.click("#sheet .two button:has-text('Cancel')")
+        check("Cancel goes back to the flipper, no change", pt.is_visible("#sheet .flip") and len(writes()) == n and status_of("Angel") == "Hold")
+        pt.click("#sheet .flip button:has-text('Reading')")
+        pt.click("#sheet .two .yes")
+        w = writes()[-1]
+        check("Yes, Reading: status and readOn today", w["fields"]["status"] == "Reading" and w["fields"]["readOn"] == today and status_of("Angel") == "Reading", w)
+        tap_status("Kid Lawyer")
+        pt.click("#sheet .flip button:has-text('Finished')")
+        check("Finished asks to confirm", "moves to Reading History" in pt.text_content("#sheet .ask"))
+        pt.click("#sheet .two .yes")
+        w = writes()[-1]
+        check("Yes, Finished: finishedOn today, book leaves the wishlist",
+              w["path"] == "readers/YC/books/a" and w["fields"]["status"] == "Finished" and w["fields"]["finishedOn"] == today and "Kid Lawyer" not in titles(), w)
+        check("Undo bar names Reading History", pt.text_content("#undoText") == "Moved to Reading History: Kid Lawyer")
+        tap_status("Ghost")
+        pt.keyboard.press("Escape")
+        check("Escape closes the flipper", pt.is_hidden("#sheet"))
+        check("writes only to YC's books", all(x["path"].startswith("readers/YC/books/") for x in writes()))
+        check("no horizontal scroll at 390 px", pt.evaluate("document.documentElement.scrollWidth") <= 390)
+
+        pt.click("#historyLink")
+        pt.wait_for_url(BASE + "history/?reader=YC")
+        pt.wait_for_selector("#books .book")
+        hist = pt.eval_on_selector_all("#books .book", "els => els.map(e => [...e.querySelectorAll('.t,.m')].map(x => x.textContent))")
+        check("Reading History title", pt.text_content("#title") == "YC’s Reading History", pt.text_content("#title"))
+        check("Reading History: Finished books, newest first, no date last",
+              [h[0] for h in hist] == ["Kid Lawyer", "Wrath of the Triple Goddess", "Holes"], hist)
+        check("Reading History shows read and finished dates",
+              hist[0][-1] == f"Read 2026-10-02 → finished {today}" and hist[1][-1] == "Read 2026-09-25 → finished 2026-10-15" and hist[2] == ["Holes", "Sachar, Louis"], hist)
+        check("Reading History has no status buttons", pt.locator("#books .status").count() == 0)
+        check("Reading History back link", pt.get_attribute("#back", "href") == "../tracker/?reader=YC")
+        pt.screenshot(path=os.path.join(OUT, "9-history.png"), full_page=True)
+        pt.goto(BASE + "tracker/?reader=JY")
+        pt.wait_for_selector("#books .empty")
+        check("empty wishlist message", pt.text_content("#books .empty") == "No books on the wishlist.")
+        pt.goto(BASE + "history/?reader=Guest")
+        pt.wait_for_url(BASE + "readers/")
+        check("history: unknown reader goes back to readers", True)
+        pt.evaluate("localStorage.setItem('fake-db-error', 'permission-denied')")
+        pt.goto(BASE + "tracker/?reader=YC")
+        pt.wait_for_selector("#problem:not([hidden])")
+        check("Firestore refusal shows a message", "rules may not be published" in pt.text_content("#problem"), pt.text_content("#problem"))
+        pt.evaluate("localStorage.removeItem('fake-db-error'); localStorage.removeItem('fake-auth-user')")
+        pt.goto(BASE + "history/?reader=YC")
+        pt.wait_for_url(BASE)
+        check("history page needs sign-in", True)
+        check("no page errors (wishlist and history)", not terrs, terrs)
+
+        # 12b. dark mode screenshots
+        dkt = b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
+        dkt.route("https://www.gstatic.com/firebasejs/13.0.0/*", fake_route)
+        pdt, _ = new_page(dkt)
+        pdt.goto(BASE + "shared/style.css")
+        pdt.evaluate("db => { localStorage.setItem('fake-db', JSON.stringify(db)); localStorage.setItem('fake-auth-user', JSON.stringify({uid:'uid-yc', email:'yc@family-reading.invalid'})); }", db)
+        pdt.goto(BASE + "tracker/?reader=YC")
+        pdt.wait_for_selector("#books .book")
+        pdt.screenshot(path=os.path.join(OUT, "10-wishlist-dark.png"), full_page=True)
+        pdt.locator("#books .book", has_text="Angel").locator(".status").click()
+        pdt.screenshot(path=os.path.join(OUT, "11-flipper-dark.png"))
+        pdt.goto(BASE + "history/?reader=YC")
+        pdt.wait_for_selector("#books .book")
+        pdt.screenshot(path=os.path.join(OUT, "12-history-dark.png"), full_page=True)
+
+        # 13. offline: Firebase cannot load
         off = b.new_context(viewport={"width": 390, "height": 844})
         off.route("https://www.gstatic.com/firebasejs/13.0.0/*", lambda r: r.abort())
         po, perrs = new_page(off)
@@ -176,7 +318,7 @@ try:
         po.wait_for_selector("#problem:not([hidden])", timeout=20000)
         check("offline: readers page shows message", "No internet" in po.text_content("#problem"))
 
-        # 13. dark mode screenshot
+        # 14. dark mode screenshot
         dk = b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
         dk.route("https://www.gstatic.com/firebasejs/13.0.0/*", fake_route)
         pd, _ = new_page(dk)

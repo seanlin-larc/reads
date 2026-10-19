@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// Firestore rules for Reads (Firebase project family-reading-f4748).
+// Claude writes and tests these rules. Sean publishes them in the Firebase console.
+// Test: see tests/README.md, "Firestore rules".
+//
+// Data: readers/{code}/books/{bookId}, one document for each book for each reader.
+// Who can do what:
+// - The four readers (SL, CJ, YC, JY) can read every list and change the status of every book.
+//   They cannot add or delete books, and they cannot change the title, author or series.
+// - The import account (Claude's import script) can read every list and add books.
+//   It cannot change or delete books.
+// - Nobody can delete a book (Sean, 2026-10-19: no "remove" for now).
+//   The Firebase console can still delete, because the console does not use these rules.
+// Everything that is not allowed here is refused.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isReader() {
+      return request.auth != null && request.auth.token.email in [
+        'sl@family-reading.invalid', 'cj@family-reading.invalid',
+        'yc@family-reading.invalid', 'jy@family-reading.invalid'];
+    }
+
+    function isImporter() {
+      return request.auth != null && request.auth.token.email == 'import@family-reading.invalid';
+    }
+
+    function isStatus(s) {
+      return s in ['None', 'Hold', 'EBook', 'Reading', 'Finished'];
+    }
+
+    // A date is text like '2026-10-19', or null when not known.
+    function isDateOrNull(d) {
+      return d == null || (d is string && d.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));
+    }
+
+    // A new book from the import script.
+    function isNewBook(d) {
+      return d.keys().hasOnly(['title', 'author', 'series', 'seriesNo', 'status', 'readOn',
+                               'finishedOn', 'addedOn', 'updatedAt', 'updatedBy'])
+        && d.keys().hasAll(['title', 'author', 'series', 'seriesNo', 'status'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 300
+        && d.author is string && d.author.size() <= 300
+        && d.series is string && d.series.size() <= 300
+        && (d.seriesNo == null || d.seriesNo is int)
+        && isStatus(d.status)
+        && isDateOrNull(d.get('readOn', null))
+        && isDateOrNull(d.get('finishedOn', null))
+        && isDateOrNull(d.get('addedOn', null));
+    }
+
+    // A status change from the tracker page: only these fields can change.
+    function isStatusChange() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'readOn', 'finishedOn', 'updatedAt', 'updatedBy'])
+        && isStatus(d.status)
+        && isDateOrNull(d.get('readOn', null))
+        && isDateOrNull(d.get('finishedOn', null));
+    }
+
+    match /readers/{code}/books/{bookId} {
+      allow read: if code in ['SL', 'CJ', 'YC', 'JY'] && (isReader() || isImporter());
+      allow update: if code in ['SL', 'CJ', 'YC', 'JY'] && isReader() && isStatusChange();
+      allow create: if code in ['SL', 'CJ', 'YC', 'JY'] && isImporter() && isNewBook(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}

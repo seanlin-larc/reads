@@ -10,6 +10,9 @@
 // - Sign-up and delete are turned off in Firebase Authentication, so nobody can add an
 //   account from the browser.
 //
+// Books (Firestore): readers/{code}/books/{bookId}. See docs/2026-10-19_data-model-and-wishlist-options.md.
+// The Firestore SDK loads only when a page asks for books, so the sign-in page stays small.
+//
 // Pages do not import this file directly. They use ./load.js, which loads this file with a
 // time limit and shows a message when Firebase cannot load.
 
@@ -39,7 +42,7 @@ const firebaseConfig = {
   appId: "1:675966575076:web:a5e63068103c33e91e67f1"
 };
 
-export const app = initializeApp(firebaseConfig);   // the tracker pages add Firestore later
+export const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // Resolves once Firebase has restored any saved sign-in. This needs no network.
@@ -76,4 +79,48 @@ export async function signIn(code, pin) {
 
 export async function signOutPlayer() {
   await signOut(auth);
+}
+
+// ---------- Books (Firestore) ----------
+
+const FIRESTORE_URL = "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+let firestore = null;   // { fs: the SDK module, db: the database }
+
+async function books() {
+  if (!firestore) {
+    const fs = await import(FIRESTORE_URL);
+    let db;
+    try {
+      // Keep a copy on the phone, so the list shows and changes are kept when the library
+      // has no signal. The changes go to Firestore when the signal comes back.
+      db = fs.initializeFirestore(app, {
+        localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() })
+      });
+    } catch (e) {
+      console.warn("[reads] No offline copy:", e);
+      db = fs.getFirestore(app);
+    }
+    firestore = { fs, db };
+  }
+  return firestore;
+}
+
+// Calls onBooks(list) now and after each change, from any phone. Each item is
+// { id, title, author, series, seriesNo, status, readOn, finishedOn }.
+// Calls onError(error) when Firestore refuses or fails. Returns a function that stops it.
+export async function watchBooks(code, onBooks, onError) {
+  const { fs, db } = await books();
+  return fs.onSnapshot(fs.collection(db, "readers", code, "books"),
+    snap => onBooks(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    onError);
+}
+
+// Changes some fields of one book, for example { status: "Reading", readOn: "2026-10-19" }.
+// The list changes at once (from the copy on the phone). The promise resolves when Firestore
+// has saved the change, which can be much later when there is no signal.
+export async function updateBook(code, id, fields) {
+  const { fs, db } = await books();
+  const player = await currentPlayer();
+  return fs.updateDoc(fs.doc(db, "readers", code, "books", id),
+    { ...fields, updatedAt: fs.serverTimestamp(), updatedBy: player.code });
 }

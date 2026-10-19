@@ -6,27 +6,27 @@
 <title>Wishlist mockup</title>
 <!--
   MOCKUP ONLY (Claude, 2026-10-19). Not part of the app. No Firebase.
-  Option C, as decided by Sean on 2026-10-19: a list, a status button on each book,
+  Option C, as decided by Sean on 2026-10-19. The real pages are tracker/ and history/: a list, a status button on each book,
   and a flipper panel to change the status. Taps work, but nothing is saved. Reload to reset.
 -->
 <style>
 :root{
   --bg:#f7f3ec; --panel:#fffdf9; --text:#2a2622; --muted:#6f675e; --line:#dcd3c6;
   --accent:#9a4a1f; --accent-text:#fff; --on:#fff;
-  --None:#6f675e; --Hold:#9a6700; --Ebook:#7c3aed; --Reading:#0b62c4; --Finished:#1a7f37;
+  --None:#6f675e; --Hold:#9a6700; --EBook:#7c3aed; --Reading:#0b62c4; --Finished:#1a7f37;
   --serif: Charter, "Bitstream Charter", "Iowan Old Style", Georgia, serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#1b1916; --panel:#25221e; --text:#efe9e1; --muted:#a79e93; --line:#3d3832;
     --accent:#e39b6c; --accent-text:#1b1916; --on:#1b1916;
-    --None:#a79e93; --Hold:#e3b341; --Ebook:#b392f0; --Reading:#6cb6ff; --Finished:#4ac26b;
+    --None:#a79e93; --Hold:#e3b341; --EBook:#b392f0; --Reading:#6cb6ff; --Finished:#4ac26b;
   }
 }
 :root[data-theme="dark"]{
   --bg:#1b1916; --panel:#25221e; --text:#efe9e1; --muted:#a79e93; --line:#3d3832;
   --accent:#e39b6c; --accent-text:#1b1916; --on:#1b1916;
-  --None:#a79e93; --Hold:#e3b341; --Ebook:#b392f0; --Reading:#6cb6ff; --Finished:#4ac26b;
+  --None:#a79e93; --Hold:#e3b341; --EBook:#b392f0; --Reading:#6cb6ff; --Finished:#4ac26b;
 }
 *{box-sizing:border-box}
 [hidden]{display:none !important}
@@ -79,10 +79,10 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webk
 <section class="phone"><div class="screen" id="screen"></div></section>
 
 <script>
-const STATUS = ['None', 'Hold', 'Ebook', 'Reading', 'Finished'];
-const HELP = { None:'On the wishlist', Hold:'Hold placed', Ebook:'Only an ebook', Reading:'Checked out', Finished:'Finished and returned' };
-// Wishlist order: books in hand first, then holds, ebooks, the rest.
-const ORDER = ['Reading', 'Hold', 'Ebook', 'None'];
+const STATUS = ['None', 'Hold', 'EBook', 'Reading', 'Finished'];
+const HELP = { None:'On the wishlist', Hold:'Hold placed', EBook:'Only an ebook', Reading:'Checked out', Finished:'Finished and returned' };
+// Wishlist order (Sean, 2026-10-19): Hold, EBook, None, then Reading at the bottom.
+const ORDER = ['Hold', 'EBook', 'None', 'Reading'];
 // These two ask once more before they change.
 const CONFIRM = {
   Reading:  ['Checked out?', 'Yes, Reading'],
@@ -94,8 +94,8 @@ const books = [
   { title:'From the Mixed-up Files of Mrs. Basil E. Frankweiler', author:'Konigsburg, E. L.', series:'', seriesNo:null, status:'Reading', readOn:'2026-10-02' },
   { title:'The Iron Trial', author:'Black, Holly; Clare, Cassandra', series:'Magisterium', seriesNo:1, status:'Reading', readOn:'2026-10-02' },
   { title:'Kid Lawyer', author:'Grisham, John', series:'Theodore Boone', seriesNo:1, status:'Reading', readOn:'2026-10-02' },
-  { title:'The Abduction', author:'Grisham, John', series:'Theodore Boone', seriesNo:2, status:'Ebook' },
-  { title:'The Accused', author:'Grisham, John', series:'Theodore Boone', seriesNo:3, status:'Ebook' },
+  { title:'The Abduction', author:'Grisham, John', series:'Theodore Boone', seriesNo:2, status:'EBook' },
+  { title:'The Accused', author:'Grisham, John', series:'Theodore Boone', seriesNo:3, status:'EBook' },
   { title:'The Activist', author:'Grisham, John', series:'Theodore Boone', seriesNo:4, status:'None' },
   { title:'The Wild Robot Protects', author:'Brown, Peter', series:'The Wild Robot', seriesNo:3, status:'Hold' },
   { title:'Angel', author:'Patterson, James', series:'Maximum Ride', seriesNo:7, status:'Hold' },

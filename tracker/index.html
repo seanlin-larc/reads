@@ -2,42 +2,194 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tracker · Reads</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wishlist · Reads</title>
 <link rel="stylesheet" href="../shared/style.css">
 </head>
 <body>
 <main>
   <p><a href="../readers/">← All readers</a></p>
-  <h1 id="title">Tracker</h1>
+  <h1 id="title">Wishlist</h1>
 
   <p id="loading" class="msg">Loading…</p>
   <p id="problem" class="problem" hidden role="alert"></p>
 
   <section id="content" hidden>
     <div id="who"></div>
-    <!-- PLACEHOLDER (2026-10-16): the wishlist and library tracking are not built yet. -->
-    <p class="intro" id="note">This tracker is not built yet. The wishlist and library tracking come next.</p>
+    <div class="listhead">
+      <span class="count" id="count"></span>
+      <a class="navbtn" id="historyLink" href="../history/">Reading History →</a>
+    </div>
+    <ul class="books" id="books" aria-label="Wishlist"></ul>
   </section>
 </main>
 
+<!-- Status flipper. Filled by openFlipper() below. -->
+<div class="shade" id="shade" hidden></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+<!-- "Undo" bar, for 5 seconds after each change. -->
+<div class="undo" id="undo" hidden role="status"><span id="undoText"></span><button type="button" id="undoBtn">Undo</button></div>
+
 <script type="module">
+// One reader's wishlist (Sean, 2026-10-19): option C. Each book shows the title, series and
+// number, author(s), and a status button. The button opens the status flipper.
+// "Reading" and "Finished" ask once more. A Finished book leaves this list and shows in
+// Reading History (../history/). Everyone can change every list.
 import { requirePlayer, mountBar } from '../shared/load.js';
+import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, bookInfo } from '../shared/books.js';
 
-const PLAYER_CODES = ['SL', 'CJ', 'YC', 'JY'];
 const $ = id => document.getElementById(id);
+let ctx, reader, books = [], undoTimer;
 
-const ctx = await requirePlayer($('problem'));
+function show(problem) {
+  $('problem').hidden = false;
+  $('problem').textContent = problem;
+}
+
+function render() {
+  const list = wishlist(books);
+  $('count').textContent = list.length === 1 ? '1 book' : list.length + ' books';
+  const ul = $('books');
+  ul.textContent = '';
+  if (!list.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = 'No books on the wishlist.';
+    ul.append(li);
+  }
+  for (const b of list) {
+    const li = document.createElement('li');
+    li.className = 'book';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'status st-' + b.status;
+    btn.textContent = b.status;
+    btn.setAttribute('aria-label', 'Status ' + b.status + '. Change status of ' + b.title);
+    btn.addEventListener('click', () => openFlipper(b, btn));
+    li.append(bookInfo(b), btn);
+    ul.append(li);
+  }
+}
+
+// ---------- status flipper ----------
+let opener = null;
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function closeFlipper() {
+  $('sheet').hidden = $('shade').hidden = true;
+  if (opener && document.contains(opener)) opener.focus();
+}
+
+function openFlipper(b, from, asking) {
+  opener = from || opener;
+  const sheet = $('sheet');
+  sheet.textContent = '';
+  const h = el('h2', '', b.title);
+  h.id = 'sheetTitle';
+  sheet.append(h, el('div', 'm', [b.series && b.series + (b.seriesNo ? ' · #' + b.seriesNo : ''), b.author].filter(Boolean).join(' · ')));
+  if (asking) {
+    const [question, yesText] = CONFIRM[asking];
+    const two = el('div', 'two');
+    const no = el('button', '', 'Cancel');
+    no.type = 'button';
+    no.addEventListener('click', () => openFlipper(b));
+    const yes = el('button', 'yes', yesText);
+    yes.type = 'button';
+    yes.style.background = 'var(--st-' + asking + ')';
+    yes.addEventListener('click', () => change(b, asking));
+    two.append(no, yes);
+    sheet.append(el('p', 'ask', question), two);
+  } else {
+    const flip = el('div', 'flip');
+    for (const s of STATUSES) {
+      const btn = el('button');
+      btn.type = 'button';
+      btn.style.borderColor = 'var(--st-' + s + ')';
+      if (b.status === s) btn.style.background = 'var(--st-' + s + ')';
+      btn.setAttribute('aria-pressed', String(b.status === s));
+      btn.append(s + ' ', el('small', '', '· ' + HELP[s]));
+      btn.addEventListener('click', () => {
+        if (s === b.status) return closeFlipper();
+        if (CONFIRM[s]) openFlipper(b, null, s);
+        else change(b, s);
+      });
+      flip.append(btn);
+    }
+    const close = el('button', 'close', 'Close');
+    close.type = 'button';
+    close.addEventListener('click', closeFlipper);
+    sheet.append(flip, close);
+  }
+  $('shade').hidden = sheet.hidden = false;
+  sheet.querySelector('button').focus();
+}
+
+$('shade').addEventListener('click', closeFlipper);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('sheet').hidden) closeFlipper(); });
+
+// ---------- change a status ----------
+function save(b, fields) {
+  // The list changes at once from the copy on the phone. Firestore saves it later if there is no signal.
+  ctx.auth.updateBook(reader, b.id, fields).catch(e => {
+    console.warn('[reads] Change not saved:', e);
+    show(e && e.code === 'permission-denied'
+      ? 'Firestore refused the change. Reload the page and try again.'
+      : 'The change was not saved. Reload the page and try again.');
+  });
+}
+
+function change(b, status) {
+  const before = { status: b.status, readOn: b.readOn ?? null, finishedOn: b.finishedOn ?? null };
+  const fields = { status };
+  if (status === 'Reading') fields.readOn = today();
+  if (status === 'Finished') fields.finishedOn = today();
+  closeFlipper();
+  save(b, fields);
+  $('undoText').textContent = status === 'Finished' ? 'Moved to Reading History: ' + b.title : status + ': ' + b.title;
+  $('undo').hidden = false;
+  $('undoBtn').onclick = () => { hideUndo(); save(b, before); };
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 5000);
+}
+
+function hideUndo() {
+  clearTimeout(undoTimer);
+  $('undo').hidden = true;
+}
+
+// ---------- start ----------
+ctx = await requirePlayer($('problem'));
 $('loading').hidden = true;
 if (ctx) {
-  const reader = new URLSearchParams(location.search).get('reader');
-  if (!PLAYER_CODES.includes(reader)) {
+  reader = readerFromUrl();
+  if (!reader) {
     location.replace('../readers/');
   } else {
-    document.title = reader + ' · Reads';
-    $('title').textContent = reader + '’s reading';
+    document.title = reader + ' wishlist · Reads';
+    $('title').textContent = reader + '’s wishlist';
+    $('historyLink').href = '../history/?reader=' + reader;
     mountBar($('who'), ctx);
     $('content').hidden = false;
+    $('count').textContent = 'Loading…';
+    try {
+      await ctx.auth.watchBooks(reader, list => { books = list; render(); }, e => {
+        console.warn('[reads] Books did not load:', e);
+        $('count').textContent = '';
+        show(e && e.code === 'permission-denied'
+          ? 'Firestore refused access to the books. The Firestore rules may not be published yet.'
+          : 'The books did not load. Reload the page to try again.');
+      });
+    } catch (e) {
+      console.warn('[reads] Firestore did not load:', e);
+      $('count').textContent = '';
+      show('No internet connection. Reads needs internet. Reload the page to try again.');
+    }
   }
 }
 </script>
