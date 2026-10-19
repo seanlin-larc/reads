@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wishlist mockup</title>
+<!--
+  MOCKUP ONLY (Claude, 2026-10-19). Not part of the app. No Firebase.
+  Option C, as decided by Sean on 2026-10-19: a list, a status button on each book,
+  and a flipper panel to change the status. Taps work, but nothing is saved. Reload to reset.
+-->
+<style>
+:root{
+  --bg:#f7f3ec; --panel:#fffdf9; --text:#2a2622; --muted:#6f675e; --line:#dcd3c6;
+  --accent:#9a4a1f; --accent-text:#fff; --on:#fff;
+  --None:#6f675e; --Hold:#9a6700; --Ebook:#7c3aed; --Reading:#0b62c4; --Finished:#1a7f37;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", Georgia, serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1916; --panel:#25221e; --text:#efe9e1; --muted:#a79e93; --line:#3d3832;
+    --accent:#e39b6c; --accent-text:#1b1916; --on:#1b1916;
+    --None:#a79e93; --Hold:#e3b341; --Ebook:#b392f0; --Reading:#6cb6ff; --Finished:#4ac26b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1916; --panel:#25221e; --text:#efe9e1; --muted:#a79e93; --line:#3d3832;
+  --accent:#e39b6c; --accent-text:#1b1916; --on:#1b1916;
+  --None:#a79e93; --Hold:#e3b341; --Ebook:#b392f0; --Reading:#6cb6ff; --Finished:#4ac26b;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.4;padding:16px;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.top{max-width:390px;margin:0 auto 12px}
+.top h1{font-family:var(--serif);font-size:1.4rem;margin:0 0 4px}
+.top p{margin:0 0 8px;color:var(--muted);font-size:.88rem}
+.theme{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}
+/* One phone screen: fixed height, the list scrolls inside it. */
+.phone{max-width:390px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:22px;overflow:hidden;
+  position:relative;display:flex;flex-direction:column;height:min(800px,calc(100vh - 32px));height:min(800px,calc(100dvh - 32px))}
+.screen{flex:1;overflow-y:auto;padding:12px 12px 90px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.head h2{font-family:var(--serif);font-size:1.35rem;margin:0}
+.navbtn{min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:.9rem}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:10px;margin-bottom:6px}
+.grow{flex:1;min-width:0}
+.t{font-weight:600}
+.m{font-size:.84rem;color:var(--muted)}
+.status{min-height:44px;min-width:92px;padding:0 10px;border-radius:999px;border:0;color:var(--on);font-weight:700;font-size:.9rem}
+.status::after{content:" ▾";font-size:.75em}
+.count{margin:-6px 0 10px;font-size:.84rem;color:var(--muted)}
+.shade{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+  border-radius:18px 18px 0 0;padding:14px 14px 20px}
+.sheet h3{margin:0 0 2px;font-size:1.05rem}
+.flip{display:grid;gap:8px;margin:12px 0}
+.flip button{min-height:52px;border-radius:12px;border:2px solid var(--line);background:none;font-weight:600;text-align:left;padding:0 14px}
+.flip button[aria-pressed="true"]{color:var(--on)}
+.flip small{font-weight:400;opacity:.8}
+.ask{margin:12px 0;font-size:1rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.two button,.cancel{min-height:52px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:600}
+.two .yes{border:0;color:var(--on)}
+.cancel{width:100%}
+.undo{position:absolute;left:12px;right:12px;bottom:12px;display:flex;align-items:center;justify-content:space-between;
+  gap:8px;background:var(--text);color:var(--bg);border-radius:12px;padding:6px 6px 6px 12px;font-size:.88rem}
+.undo button{min-height:44px;padding:0 14px;border:0;border-radius:10px;background:var(--bg);color:var(--text);font-weight:700}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Wishlist mockup (option C)</h1>
+  <p>Tap a status button to open the flipper. "Reading" and "Finished" ask once more. A Finished book moves to Reading History. Nothing is saved; reload to reset. Sample books from the YC wishlist (2026-10-13), some statuses changed. Today = 2026-10-19.</p>
+  <button class="theme" id="theme">◐ Light / dark</button>
+</div>
+<section class="phone"><div class="screen" id="screen"></div></section>
+
+<script>
+const STATUS = ['None', 'Hold', 'Ebook', 'Reading', 'Finished'];
+const HELP = { None:'On the wishlist', Hold:'Hold placed', Ebook:'Only an ebook', Reading:'Checked out', Finished:'Finished and returned' };
+// Wishlist order: books in hand first, then holds, ebooks, the rest.
+const ORDER = ['Reading', 'Hold', 'Ebook', 'None'];
+// These two ask once more before they change.
+const CONFIRM = {
+  Reading:  ['Checked out?', 'Yes, Reading'],
+  Finished: ['Finished and returned? The book moves to Reading History.', 'Yes, Finished'],
+};
+const TODAY = '2026-10-19';
+
+const books = [
+  { title:'From the Mixed-up Files of Mrs. Basil E. Frankweiler', author:'Konigsburg, E. L.', series:'', seriesNo:null, status:'Reading', readOn:'2026-10-02' },
+  { title:'The Iron Trial', author:'Black, Holly; Clare, Cassandra', series:'Magisterium', seriesNo:1, status:'Reading', readOn:'2026-10-02' },
+  { title:'Kid Lawyer', author:'Grisham, John', series:'Theodore Boone', seriesNo:1, status:'Reading', readOn:'2026-10-02' },
+  { title:'The Abduction', author:'Grisham, John', series:'Theodore Boone', seriesNo:2, status:'Ebook' },
+  { title:'The Accused', author:'Grisham, John', series:'Theodore Boone', seriesNo:3, status:'Ebook' },
+  { title:'The Activist', author:'Grisham, John', series:'Theodore Boone', seriesNo:4, status:'None' },
+  { title:'The Wild Robot Protects', author:'Brown, Peter', series:'The Wild Robot', seriesNo:3, status:'Hold' },
+  { title:'Angel', author:'Patterson, James', series:'Maximum Ride', seriesNo:7, status:'Hold' },
+  { title:'Nevermore', author:'Patterson, James', series:'Maximum Ride', seriesNo:8, status:'Hold' },
+  { title:'Hypergifted', author:'Korman, Gordon', series:'Ungifted', seriesNo:2, status:'Hold' },
+  { title:'The Westing Game', author:'Raskin, Ellen', series:'', seriesNo:null, status:'Hold' },
+  { title:'Ghost', author:'Reynolds, Jason', series:'Track', seriesNo:1, status:'None' },
+  { title:'Wrath of the Triple Goddess', author:'Riordan, Rick', series:'Percy Jackson and the Olympians', seriesNo:7, status:'Finished', readOn:'2026-09-25', finishedOn:'2026-10-15' },
+  { title:'The Chalice of the Gods', author:'Riordan, Rick', series:'Percy Jackson and the Olympians', seriesNo:6, status:'Finished', finishedOn:'2026-10-13' },
+  { title:'Holes', author:'Sachar, Louis', series:'', seriesNo:null, status:'Finished' },
+  { title:'Frindle', author:'Clements, Andrew', series:'', seriesNo:null, status:'Finished' },
+];
+
+let view = 'wishlist';   // or 'history'
+let open = null;         // index of the book in the flipper
+let asking = null;       // status that waits for "Yes"
+let undo = null, timer;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const seriesLine = b => b.series ? `${b.series} · #${b.seriesNo}` : '';
+
+function setStatus(b, s){
+  undo = { b, before:{...b}, msg: s === 'Finished' ? `Moved to Reading History: ${b.title}` : `${s}: ${b.title}` };
+  b.status = s;
+  if (s === 'Reading') b.readOn = TODAY;
+  if (s === 'Finished') b.finishedOn = TODAY;
+  open = asking = null;
+  clearTimeout(timer);
+  timer = setTimeout(() => { undo = null; draw(); }, 5000);
+  draw();
+}
+
+function wishlistHtml(){
+  const rows = books.map((b, i) => [b, i]).filter(([b]) => b.status !== 'Finished').sort((x, y) =>
+    ORDER.indexOf(x[0].status) - ORDER.indexOf(y[0].status)
+    || (x[0].series || x[0].title).localeCompare(y[0].series || y[0].title)
+    || (x[0].seriesNo || 0) - (y[0].seriesNo || 0));
+  return `<div class="head"><h2>YC’s wishlist</h2><button class="navbtn" data-go="history">Reading History →</button></div>
+    <div class="count">${rows.length} books</div>` + rows.map(([b, i]) => `<div class="row"><div class="grow">
+      <div class="t">${esc(b.title)}</div>${b.series ? `<div class="m">${esc(seriesLine(b))}</div>` : ''}<div class="m">${esc(b.author)}</div></div>
+      <button class="status" data-open="${i}" style="background:var(--${b.status})" aria-label="Status: ${b.status}. Change">${b.status}</button></div>`).join('');
+}
+
+function historyHtml(){
+  const rows = books.filter(b => b.status === 'Finished')
+    .sort((x, y) => (y.finishedOn || '').localeCompare(x.finishedOn || ''));
+  return `<div class="head"><h2>Reading History</h2><button class="navbtn" data-go="wishlist">← Wishlist</button></div>
+    <div class="count">${rows.length} books finished</div>` + rows.map(b => `<div class="row"><div class="grow">
+      <div class="t">${esc(b.title)}</div>${b.series ? `<div class="m">${esc(seriesLine(b))}</div>` : ''}<div class="m">${esc(b.author)}</div>
+      <div class="m">${b.finishedOn ? `Read ${b.readOn ? b.readOn.slice(5).replace('-', '/') : '?'} → finished ${b.finishedOn.slice(5).replace('-', '/')}` : 'No dates (from the old log)'}</div></div></div>`).join('');
+}
+
+function sheetHtml(){
+  if (open == null) return '';
+  const b = books[open];
+  let body;
+  if (asking){
+    const [q, yes] = CONFIRM[asking];
+    body = `<p class="ask">${q}</p><div class="two"><button data-cancel>Cancel</button>
+      <button class="yes" data-yes="${asking}" style="background:var(--${asking})">${yes}</button></div>`;
+  } else {
+    body = `<div class="flip">${STATUS.map(s => `<button data-set="${s}" aria-pressed="${b.status === s}"
+      style="border-color:var(--${s});${b.status === s ? `background:var(--${s})` : ''}">${s} <small>· ${HELP[s]}</small></button>`).join('')}</div>
+      <button class="cancel" data-close>Close</button>`;
+  }
+  return `<div class="shade" data-close></div><div class="sheet"><h3>${esc(b.title)}</h3>
+    <div class="m">${esc([seriesLine(b), b.author].filter(Boolean).join(' · '))}</div>${body}</div>`;
+}
+
+function draw(){
+  $('screen').innerHTML = (view === 'wishlist' ? wishlistHtml() : historyHtml()) + sheetHtml();
+  document.querySelectorAll('.undo').forEach(n => n.remove());
+  if (undo){
+    const u = document.createElement('div');
+    u.className = 'undo';
+    u.innerHTML = `<span>${esc(undo.msg)}</span><button>Undo</button>`;
+    u.querySelector('button').onclick = () => { Object.assign(undo.b, undo.before); undo = null; draw(); };
+    document.querySelector('.phone').appendChild(u);
+  }
+}
+
+$('screen').addEventListener('click', e => {
+  const el = e.target.closest('button,.shade');
+  if (!el) return;
+  const d = el.dataset;
+  if (d.go){ view = d.go; open = asking = null; $('screen').scrollTop = 0; }
+  else if (d.open != null){ open = +d.open; asking = null; }
+  else if ('close' in d){ open = asking = null; }
+  else if ('cancel' in d){ asking = null; }
+  else if (d.yes){ setStatus(books[open], d.yes); return; }
+  else if (d.set){
+    if (d.set === books[open].status) return;
+    if (CONFIRM[d.set]) asking = d.set;
+    else { setStatus(books[open], d.set); return; }
+  }
+  draw();
+});
+
+$('theme').onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+};
+draw();
+</script>
+</body>
+</html>

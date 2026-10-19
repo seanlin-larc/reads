@@ -10,14 +10,18 @@ A family web app for book wishlists and library logistics, one tracker for each 
 
 - Live: sign-in page (`index.html`), reader list (`readers/`), tracker placeholder (`tracker/?reader=CODE`).
 - Firebase: Email/Password with four accounts `sl@`, `cj@`, `yc@`, `jy@family-reading.invalid` (PIN = password). Sign-up and delete are off. Firestore `(default)` exists in `us-west1`, empty, no rules from us yet. API key Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*`.
-- Not built: the tracker (wishlist and reading log), Firestore data model, Firestore rules.
+- Not built: the tracker (wishlist and Reading History), Firestore rules. The data model is decided (2026-10-19), but no code uses it yet.
 
 ## Decisions (Sean)
 
 - Everyone (SL, CJ, YC, JY) can edit every tracker and wishlist. (2026-10-18)
-- `EBook` is an availability status: only an ebook is available in the library. (2026-10-18)
-- Each person's page shows the wishlist, with a button that links to that person's reading history (log). (2026-10-18)
-- **Not decided:** how the wishlist is displayed, and how status is shown and changed. Do not build this UI until Sean decides. Ask him, and offer mockups or options first. Claude's proposal (data model and options A, B, C): `docs/2026-10-19_data-model-and-wishlist-options.md`.
+- `Ebook` is an availability status: only an ebook is available in the library. (2026-10-18; spelling `Ebook` from 2026-10-19)
+- Each person's page shows the wishlist, with a button that links to that person's reading history (log). The button is named "Reading History". (2026-10-18, name 2026-10-19)
+- Wishlist display, status values and data model: decided (2026-10-19). Details and open questions: `docs/2026-10-19_data-model-and-wishlist-options.md`. Mockup: `docs/mockups/wishlist.html`.
+  - Option C: a list. Each book shows only the title, series and number, author(s), and a status button that opens the status flipper.
+  - Status values, in Title case: `None`, `Hold`, `Ebook`, `Reading`, `Finished`. "Reading" and "Finished" ask for one more confirmation. A "Finished" book leaves the wishlist and goes to Reading History.
+  - No loan dates (no ready, due or return date). Only `readOn` (set at "Reading") and `finishedOn` (set at "Finished").
+  - The page manages the wishlist and Reading History only. Recommendations stay in LLM chats and `notes-with-llm/projects/yc-reading`. No `Declined` rows.
 - Separate Firebase project from Kids Games, no Guest account. (2026-10-18)
 - The wishlist intentionally has no "reason for the recommendation" field. Books not chosen from a recommendation list are not "rejected"; they may fit another time. (2026-10-16)
 

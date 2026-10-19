@@ -13,7 +13,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Sign-in page (`index.html`) | Built. Uses the `family-reading` project |
 | Reader list, the table of contents (`readers/`) | Built |
 | One reader's tracker (`tracker/?reader=YC`) | Placeholder only. Not built |
-| Firestore data model and wishlist display | Proposed by Claude (2026-10-19), not decided. See `docs/` |
+| Firestore data model and wishlist display | Decided by Sean (2026-10-19). Not built. See `docs/` |
 | Firestore rules for tracker data | Not written |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Tests (`tests/run.py`) | 31 of 31 passed (2026-10-18), fake Firebase |
@@ -30,7 +30,7 @@ reads/
 │   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
 │   └── style.css       Shared styles, light and dark
-├── docs/               Proposals for Sean, with mockups (not part of the app)
+├── docs/               Design notes and mockups (not part of the app)
 ├── tests/              Browser tests with fake Firebase (see tests/README.md)
 ├── .nojekyll           Tells GitHub Pages not to run Jekyll
 ├── CLAUDE.md           Instructions for Claude Code
