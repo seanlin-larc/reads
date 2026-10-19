@@ -17,7 +17,7 @@ A family web app for book wishlists and library logistics, one tracker for each 
 - Everyone (SL, CJ, YC, JY) can edit every tracker and wishlist. (2026-10-18)
 - `EBook` is an availability status: only an ebook is available in the library. (2026-10-18)
 - Each person's page shows the wishlist, with a button that links to that person's reading history (log). (2026-10-18)
-- **Not decided:** how the wishlist is displayed, and how status is shown and changed. Do not build this UI until Sean decides. Ask him, and offer mockups or options first.
+- **Not decided:** how the wishlist is displayed, and how status is shown and changed. Do not build this UI until Sean decides. Ask him, and offer mockups or options first. Claude's proposal (data model and options A, B, C): `docs/2026-10-19_data-model-and-wishlist-options.md`.
 - Separate Firebase project from Kids Games, no Guest account. (2026-10-18)
 - The wishlist intentionally has no "reason for the recommendation" field. Books not chosen from a recommendation list are not "rejected"; they may fit another time. (2026-10-16)
 

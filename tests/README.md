@@ -10,11 +10,12 @@ python -m playwright install chromium   # skip if Chromium for Playwright is alr
 python tests/run.py
 ```
 
+- Cloud session: Chromium is already in `/opt/pw-browsers`. Do not run `playwright install`. Install the Playwright version that matches that Chromium build. On 2026-10-19 the build was `chromium-1194`, so `pip install playwright==1.56.0`. With a newer Playwright, the launch fails with "Executable doesn't exist".
 - The script serves the repo folder at `http://localhost:8765/<repo folder>/`, the same path shape as GitHub Pages (`/reads/`).
 - It prints `PASS` or `FAIL` for each check, then a total. The exit code is 1 if a check fails.
 - Screenshots (phone size, light and dark) go to `tests/out/`. That folder is not committed.
 
-Last result (Claude, 2026-10-18): 31 of 31 passed.
+Last result (Claude, 2026-10-19): 31 of 31 passed.
 
 ## What the fake Firebase does
 
