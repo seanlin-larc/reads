@@ -14,7 +14,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Reader list, the table of contents (`readers/`) | Built |
 | Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built on branch `claude/cool-lamport-9imnef` (2026-10-19). Not live yet. Design: `docs/2026-10-19_data-model-and-wishlist-options.md` |
 | Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19) |
-| Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). Needs `READS_IMPORT_PASSWORD` (see below) |
+| Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Tests | `tests/run.py`: 74 of 74 passed (2026-10-19), fake Firebase. `tests/rules_test.py`: 38 of 38 passed (2026-10-19), Firebase emulators |
 
