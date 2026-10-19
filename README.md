@@ -12,7 +12,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Firebase project `family-reading-f4748` | Created (Sean, 2026-10-18). See "Firebase settings" |
 | Sign-in page (`index.html`) | Built. Uses the `family-reading` project |
 | Reader list, the table of contents (`readers/`) | Built |
-| Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built on branch `claude/cool-lamport-9imnef` (2026-10-19). Not live yet. Design: `docs/2026-10-19_data-model-and-wishlist-options.md` |
+| Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built (2026-10-19). Live on `main` (2026-10-19). Design: `docs/2026-10-19_data-model-and-wishlist-options.md` |
 | Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19) |
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |

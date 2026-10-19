@@ -8,11 +8,10 @@ A family web app for book wishlists and library logistics, one tracker for each 
 
 ## Status (2026-10-19)
 
-- Live: sign-in page (`index.html`), reader list (`readers/`), tracker placeholder (`tracker/?reader=CODE`).
-- Built on branch `claude/cool-lamport-9imnef`, not live: wishlist (`tracker/`), Reading History (`history/`), Firestore rules (`firebase/firestore.rules`, tested in the emulator, published by Sean 2026-10-19), import script (`tools/import_wishlist.py`).
+- Live (merged to `main` 2026-10-19): sign-in page (`index.html`), reader list (`readers/`), wishlist (`tracker/?reader=CODE`), Reading History (`history/?reader=CODE`). Also on `main`: Firestore rules (`firebase/firestore.rules`, tested in the emulator, published by Sean 2026-10-19), import script (`tools/import_wishlist.py`).
 - Firebase: Email/Password with four accounts `sl@`, `cj@`, `yc@`, `jy@family-reading.invalid` (PIN = password). Sign-up and delete are off. Firestore `(default)` exists in `us-west1`. Rules from `firebase/firestore.rules` published by Sean (2026-10-19). Import account `import@family-reading.invalid` created by Sean (2026-10-19). API key Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*`.
 - First import done (2026-10-19): 20 YC books from `toWebWishList.md` are in Firestore (1 `Reading`, 2 `EBook`, 12 `Hold`, 5 `None`). `READS_IMPORT_PASSWORD` works.
-- Waiting for Sean: the merge to `main`.
+- Waiting for Sean: test the wishlist and Reading History on the live site with a real sign-in.
 
 ## Decisions (Sean)
 
