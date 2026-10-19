@@ -176,7 +176,7 @@ async function submit() {
         : 'Wrong PIN. ' + st.left + ' ' + (st.left === 1 ? 'try' : 'tries') + ' left before a ' + L.LOCK_MINUTES + '-minute lock.';
     }
     setMsg(text, true);
-    if (e && e.message === 'no-player-record' && auth) await auth.signOutPlayer().catch(() => {});
+    if (e && e.message === 'not-a-reader' && auth) await auth.signOutPlayer().catch(() => {});
   } finally {
     setBusy(false);
   }
@@ -184,7 +184,7 @@ async function submit() {
 
 function messageFor(e) {
   const code = (e && e.code) || '';
-  if (e && e.message === 'no-player-record') return 'This person is not set up yet.';
+  if (e && e.message === 'not-a-reader') return 'This person is not set up yet.';
   if (code === 'auth/too-many-requests') return 'Too many tries. Wait a few minutes, then try again.';
   if (code === 'auth/network-request-failed' || code === 'app/timeout') return 'No internet connection. Sign-in needs internet.';
   return 'Sign-in did not work. Try again.';

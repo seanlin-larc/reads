@@ -30,8 +30,8 @@ export function loadAuth() {
 }
 
 // Finds out who is signed in. Returns { mode, auth, player, error }:
-//   mode "online"     signed in, checked with Firebase
-//   mode "signed-out" nobody is signed in (or the account is not a family member)
+//   mode "online"     one of the four people is signed in (Firebase restored the sign-in)
+//   mode "signed-out" nobody is signed in (or the account is not one of the four people)
 //   mode "offline"    Firebase did not load or did not answer
 export async function access() {
   const auth = await loadAuth();
@@ -41,9 +41,8 @@ export async function access() {
     if (!player) return { mode: "signed-out", auth };
     return { mode: "online", auth, player };
   } catch (e) {
-    // Guest of Kids Games: not a reader. Keep the Kids Games sign-in; show the sign-in page.
-    if (e && e.message === "not-a-reader") return { mode: "signed-out", auth, error: e };
-    if (e && e.message === "no-player-record") {
+    // An account that is not one of the four people: sign it out, show the sign-in page.
+    if (e && e.message === "not-a-reader") {
       await auth.signOutPlayer().catch(() => {});
       return { mode: "signed-out", auth, error: e };
     }
