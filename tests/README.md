@@ -15,7 +15,7 @@ python tests/run.py
 - It prints `PASS` or `FAIL` for each check, then a total. The exit code is 1 if a check fails.
 - Screenshots (phone size, light and dark) go to `tests/out/`. That folder is not committed.
 
-Last result (Claude, 2026-10-19): 71 of 71 passed.
+Last result (Claude, 2026-10-19): 74 of 74 passed.
 
 ## What the fake Firebase does
 

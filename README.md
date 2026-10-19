@@ -16,7 +16,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19) |
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). Needs `READS_IMPORT_PASSWORD` (see below) |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
-| Tests | `tests/run.py`: 71 of 71 passed (2026-10-19), fake Firebase. `tests/rules_test.py`: 38 of 38 passed (2026-10-19), Firebase emulators |
+| Tests | `tests/run.py`: 74 of 74 passed (2026-10-19), fake Firebase. `tests/rules_test.py`: 38 of 38 passed (2026-10-19), Firebase emulators |
 
 ## Folder structure
 
@@ -58,7 +58,7 @@ reads/
 
 - Each book is a Firestore document `readers/{code}/books/{bookId}`. Status values: `None`, `Hold`, `EBook`, `Reading`, `Finished`. Details: `docs/2026-10-19_data-model-and-wishlist-options.md`.
 - Everyone can change the status of every book. Nobody can add or delete books on the page.
-- New books come from `notes-with-llm/projects/yc-reading/toWebWishList.md`. Claude runs `tools/import_wishlist.py` when Sean asks. The script signs in as `import@family-reading.invalid`. Its password is the environment variable `READS_IMPORT_PASSWORD` in the Claude Code environment settings. It is never in this repo. For the file in `yc-reading/`, which has no Reader column, use `--reader YC`.
+- New books come from `notes-with-llm/projects/yc-reading/toWebWishList.md`. Claude runs `tools/import_wishlist.py` when Sean asks. The script signs in as `import@family-reading.invalid`. Its password is the environment variable `READS_IMPORT_PASSWORD` in the Claude Code environment settings. It is never in this repo. The file in `yc-reading/` has no Reader column; the script takes the reader (YC) from the folder name.
 
 ## Firebase settings (Sean, 2026-10-18)
 

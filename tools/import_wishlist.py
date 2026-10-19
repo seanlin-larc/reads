@@ -9,7 +9,8 @@ Usage:
   python tools/import_wishlist.py FILE            dry run: show what the import would add
   python tools/import_wishlist.py FILE --write    add the books
   python tools/import_wishlist.py FILE --check    only read and check the file (no network)
-  Add --reader YC when the file has no Reader column (for example the file in yc-reading/).
+  Add --reader YC when the file has no Reader column. For a file in a folder named
+  yc-reading (or sl-, cj-, jy-reading), the reader comes from the folder name (Sean, 2026-10-19).
 
 Sign-in: the import account import@family-reading.invalid. Its password comes from the
 environment variable READS_IMPORT_PASSWORD (a secret in the Claude Code environment settings).
@@ -22,7 +23,7 @@ the Firebase emulators, not the real project (see tests/README.md).
 File format: a Markdown table. The column names can be in any order; case does not matter.
   | Reader | Title | Series | # | Author(s) | Status |
   | YC | Kid Lawyer | Theodore Boone | 1 | Grisham, John | Hold |
-- Reader: SL, CJ, YC or JY. Optional when you give --reader. Title: required.
+- Reader: SL, CJ, YC or JY. Optional when you give --reader, or when the folder gives it. Title: required.
 - Series and #: empty for a book that is not in a series.
 - Author(s): "Last, First". More than one author: "Black, Holly; Clare, Cassandra".
 - Status: None, Hold, EBook, Reading or Finished. Empty = None.
@@ -91,7 +92,7 @@ def check_row(raw):
     problems = []
     reader = raw.get("reader", "").upper()
     if not reader:
-        problems.append("no reader: add a Reader column, or run the script with --reader YC")
+        problems.append("no reader: add a Reader column, put the file in yc-reading/, or use --reader YC")
     elif reader not in READERS:
         problems.append(f"reader '{raw.get('reader', '')}' is not SL, CJ, YC or JY")
     title = raw.get("title", "")
@@ -204,6 +205,12 @@ def add_books(books, token, today):
 
 # ---------- main ----------
 
+def reader_from_folder(path):
+    """yc-reading/toWebWishList.md -> 'YC'. None when the folder name is not <code>-reading."""
+    folder = os.path.basename(os.path.dirname(os.path.abspath(path))).lower()
+    code = folder[:-len("-reading")].upper() if folder.endswith("-reading") else ""
+    return code if code in READERS else None
+
 def describe(b):
     s = f"{b['reader']}  {b['title']}"
     if b["series"]: s += f"  ({b['series']} #{b['seriesNo']})" if b["seriesNo"] else f"  ({b['series']})"
@@ -224,6 +231,10 @@ def main(argv):
     if len(args) != 1 or flags - {"--write", "--check"} or (reader is not None and reader not in READERS):
         print(__doc__.split("\n\n")[2])
         return 2
+    if reader is None:
+        reader = reader_from_folder(args[0])
+        if reader:
+            print(f"Reader for rows with no Reader value: {reader} (from the folder name).")
     with open(args[0], encoding="utf-8") as f:
         books, errors = parse(f.read(), reader)
     if errors:

@@ -107,13 +107,13 @@ Sean writes the books in `notes-with-llm/projects/yc-reading/toWebWishList.md`, 
 - Optional columns `Read on` and `Finished on` (dates like `2026-10-19`), for books that go straight to Reading History.
 - `—` or `-` means empty.
 - Text before or after the table is ignored, so the file can have notes.
-- The `Reader` column is optional when the script gets `--reader YC`. The file in `yc-reading/` has no `Reader` column, so Claude uses `--reader YC` for it.
+- The `Reader` column is optional. For a file in a folder named `yc-reading` (or `sl-`, `cj-`, `jy-reading`), the script takes the reader from the folder name (Sean, 2026-10-19). `--reader YC` also works, and wins over the folder name.
 
 When Sean asks, Claude runs:
 
 ```
-python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishList.md --reader YC          # dry run
-python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishList.md --reader YC --write  # add
+python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishList.md          # dry run
+python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishList.md --write  # add
 ```
 
 - A book that is already in Firestore (same reader, title, series and number) is skipped. So the same file can be imported again, and old rows can stay in the file.
@@ -124,7 +124,7 @@ python tools/import_wishlist.py ../notes-with-llm/projects/yc-reading/toWebWishL
 
 1. ~~**Publish the rules.**~~ Done (Sean, 2026-10-19). Firebase console → Firestore Database → Rules. Replace the text with `firebase/firestore.rules`, then Publish.
 2. ~~**Make the import account.**~~ Done (Sean, 2026-10-19). Firebase console → Authentication → Users → Add user: email `import@family-reading.invalid`, a long random password (not a PIN).
-3. **Give the password to the import script.** Claude Code environment settings (the environment menu in the session title bar → Edit) → **Environment variables**: add the line `READS_IMPORT_PASSWORD=<password>`. Put the password in double quotes if it has a `#`. A new session picks it up. Do not paste the password in the chat.
+3. **Give the password to the import script.** Claude Code environment settings (the environment menu in the session title bar → Edit) → **Environment variables**: add the line `READS_IMPORT_PASSWORD="<password>"`. Always use the double quotes: without them, a `#` and all text after it is dropped. Do not use a `"` in the password. A new session picks it up. Do not paste the password in the chat.
    - Why not a "network secret": the agent proxy adds a network secret to the request *headers*. Firebase sign-in needs the password in the request *body*, so a header secret does not work.
    - Risk: anyone who uses the environment can read the variable. The import account can only read books and add books (Firestore rules), so a leak cannot change or delete books. Sean can reset the password or disable the account in Firebase Authentication at any time.
 4. ~~**Make `toWebWishList.md`**~~ Done (Sean, 2026-10-19, 19 books for YC). Then ask Claude to import it.

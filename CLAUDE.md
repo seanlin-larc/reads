@@ -11,7 +11,7 @@ A family web app for book wishlists and library logistics, one tracker for each 
 - Live: sign-in page (`index.html`), reader list (`readers/`), tracker placeholder (`tracker/?reader=CODE`).
 - Built on branch `claude/cool-lamport-9imnef`, not live: wishlist (`tracker/`), Reading History (`history/`), Firestore rules (`firebase/firestore.rules`, tested in the emulator, published by Sean 2026-10-19), import script (`tools/import_wishlist.py`).
 - Firebase: Email/Password with four accounts `sl@`, `cj@`, `yc@`, `jy@family-reading.invalid` (PIN = password). Sign-up and delete are off. Firestore `(default)` exists in `us-west1`. Rules from `firebase/firestore.rules` published by Sean (2026-10-19). Import account `import@family-reading.invalid` created by Sean (2026-10-19). API key Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*`.
-- Waiting for Sean: add `READS_IMPORT_PASSWORD` to the Claude Code environment variables; ask for the import; ask for the merge to `main`.
+- Waiting for Sean: fix `READS_IMPORT_PASSWORD` (on 2026-10-19 the session read only 2 characters; put the value in double quotes); then the import dry run; then the merge to `main`.
 
 ## Decisions (Sean)
 
@@ -23,7 +23,7 @@ A family web app for book wishlists and library logistics, one tracker for each 
   - Status values: `None`, `Hold`, `EBook`, `Reading`, `Finished`. Wishlist order: `Hold`, `EBook`, `None`, then `Reading` at the bottom. "Reading" and "Finished" ask for one more confirmation. A "Finished" book leaves the wishlist and goes to Reading History.
   - No loan dates (no ready, due or return date). Only `readOn` (set at "Reading") and `finishedOn` (set at "Finished").
   - The page manages the wishlist and Reading History only. Recommendations stay in LLM chats and `notes-with-llm/projects/yc-reading`. No `Declined` rows.
-  - Add books: Sean writes `notes-with-llm/projects/yc-reading/toWebWishList.md`. The file has no Reader column. When Sean asks, Claude runs `python tools/import_wishlist.py <file> --reader YC` (dry run), then with `--write`.
+  - Add books: Sean writes `notes-with-llm/projects/yc-reading/toWebWishList.md`. The file has no Reader column; the script takes the reader from the folder name (`yc-reading` → YC, Sean 2026-10-19). When Sean asks, Claude runs `python tools/import_wishlist.py <file>` (dry run), shows the result, then runs it with `--write` after Sean agrees.
   - Not needed for now: remove a book, edit a book, move a finished book back to the wishlist.
 - Separate Firebase project from Kids Games, no Guest account. (2026-10-18)
 - The wishlist intentionally has no "reason for the recommendation" field. Books not chosen from a recommendation list are not "rejected"; they may fit another time. (2026-10-16)

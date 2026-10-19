@@ -62,6 +62,15 @@ r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "no-reader.md"), "
 check("import --check --reader yc: file OK", r.returncode == 0 and "YC  Kid Lawyer" in r.stdout, r.stdout + r.stderr)
 r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "no-reader.md"), "--check", "--reader=XX"], capture_output=True, text=True)
 check("import --reader XX is refused", r.returncode == 2, r.stdout + r.stderr)
+os.makedirs(os.path.join(OUT, "yc-reading"), exist_ok=True)
+with open(os.path.join(OUT, "yc-reading", "toWebWishList.md"), "w", encoding="utf-8") as f:
+    f.write("| Title | Status |\n|---|---|\n| Ghost | Hold |\n")
+r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "yc-reading", "toWebWishList.md"), "--check"], capture_output=True, text=True)
+check("import: a file in yc-reading/ gets reader YC", r.returncode == 0 and "YC  Ghost" in r.stdout and "from the folder name" in r.stdout, r.stdout + r.stderr)
+r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "yc-reading", "toWebWishList.md"), "--check", "--reader", "SL"], capture_output=True, text=True)
+check("import: --reader wins over the folder name", r.returncode == 0 and "SL  Ghost" in r.stdout, r.stdout + r.stderr)
+r = subprocess.run([sys.executable, SCRIPT, os.path.join(OUT, "no-reader.md"), "--check"], capture_output=True, text=True)
+check("import: other folder and no --reader is an error", r.returncode == 1 and "no reader" in r.stdout, r.stdout + r.stderr)
 
 def fake_route(route):
     name = route.request.url.rsplit("/", 1)[-1]
