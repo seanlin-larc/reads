@@ -2,7 +2,7 @@
 
 Family reading trackers: wishlists, library holds and checkouts, for each family member. Static web pages on GitHub Pages, with Firebase for sign-in and (later) the data.
 
-- Site (after GitHub Pages is turned on): https://seanlin-larc.github.io/reads/
+- Site: https://seanlin-larc.github.io/reads/
 - Notes and decisions: `projects/reading-tracker/` in the private `notes-with-llm` repo.
 
 ## Status (2026-10-18)
@@ -14,7 +14,8 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Reader list, the table of contents (`readers/`) | Built |
 | One reader's tracker (`tracker/?reader=YC`) | Placeholder only. Not built |
 | Firestore rules for tracker data | Not written |
-| GitHub Pages | Not turned on |
+| GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
+| Tests (`tests/run.py`) | 31 of 31 passed (2026-10-18), fake Firebase |
 
 ## Folder structure
 
@@ -28,7 +29,9 @@ reads/
 │   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
 │   └── style.css       Shared styles, light and dark
+├── tests/              Browser tests with fake Firebase (see tests/README.md)
 ├── .nojekyll           Tells GitHub Pages not to run Jekyll
+├── CLAUDE.md           Instructions for Claude Code
 └── README.md
 ```
 
