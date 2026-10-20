@@ -55,6 +55,12 @@ check("import file: --reader fills rows with no reader; a Reader value wins",
       not errors and [(b["title"], b["reader"]) for b in books] == [("A", "YC"), ("B", "SL")], (books, errors))
 books, errors = iw.parse("| Title |\n|---|\n| A |\n")
 check("import file: no reader and no --reader is an error", len(errors) == 1 and "--reader YC" in errors[0], errors)
+books, errors = iw.parse("| Log # | Title | Status | Finished on |\n|---|---|---|---|\n| 1 | A | Finished | |\n| 2 | B | Finished | 2026-10-13 |\n| x | C | Finished | |\n", "YC")
+check("import file: Log # column read as logNo; bad Log # reported",
+      [(b["title"], b["logNo"], b["finishedOn"]) for b in books] == [("A", 1, None), ("B", 2, "2026-10-13")]
+      and len(errors) == 1 and "Log # 'x'" in errors[0], (books, errors))
+books, errors = iw.parse("| Title |\n|---|\n| A |\n", "YC")
+check("import file: no Log # column gives logNo None", books[0]["logNo"] is None, books)
 SCRIPT = os.path.join(REPO, "tools", "import_wishlist.py")
 with open(os.path.join(OUT, "no-reader.md"), "w", encoding="utf-8") as f:
     f.write("| Title | Series | # | Author(s) | Status |\n|---|---|---|---|---|\n| Kid Lawyer | Theodore Boone | 1 | Grisham, John | Hold |\n")
@@ -221,6 +227,9 @@ try:
             "f": bk("Ghost", "Reynolds, Jason", "None", "Track", 1),
             "g": bk("Holes", "Sachar, Louis", "Finished"),
             "h": bk("Wrath of the Triple Goddess", "Riordan, Rick", "Finished", "Percy Jackson", 7, readOn="2026-09-25", finishedOn="2026-10-15"),
+            "i": bk("Masterminds", "Korman, Gordon", "Finished", logNo=1),
+            "j": bk("Star-Crossed", "Dee, Barbara", "Finished", logNo=81),
+            "k": bk("Spy School", "Gibbs, Stuart", "Finished", logNo=3),
         }, "readers/SL/books": {"s": bk("Other list", "X", "None")}}
         pt.evaluate("db => { localStorage.setItem('fake-db', JSON.stringify(db)); localStorage.setItem('fake-auth-user', JSON.stringify({uid:'uid-sl', email:'sl@family-reading.invalid'})); }", db)
         pt.goto(BASE + "tracker/?reader=YC")
@@ -286,10 +295,11 @@ try:
         pt.wait_for_selector("#books .book")
         hist = pt.eval_on_selector_all("#books .book", "els => els.map(e => [...e.querySelectorAll('.t,.m')].map(x => x.textContent))")
         check("Reading History title", pt.text_content("#title") == "YC’s Reading History", pt.text_content("#title"))
-        check("Reading History: Finished books, newest first, no date last",
-              [h[0] for h in hist] == ["Kid Lawyer", "Wrath of the Triple Goddess", "Holes"], hist)
+        check("Reading History: dated books newest first, then old log by Log # (newest first), then no date",
+              [h[0] for h in hist] == ["Kid Lawyer", "Wrath of the Triple Goddess", "Star-Crossed", "Spy School", "Masterminds", "Holes"], hist)
+        check("Reading History count", pt.text_content("#count") == "6 books finished", pt.text_content("#count"))
         check("Reading History shows read and finished dates",
-              hist[0][-1] == f"Read 2026-10-02 → finished {today}" and hist[1][-1] == "Read 2026-09-25 → finished 2026-10-15" and hist[2] == ["Holes", "Sachar, Louis"], hist)
+              hist[0][-1] == f"Read 2026-10-02 → finished {today}" and hist[1][-1] == "Read 2026-09-25 → finished 2026-10-15" and hist[2] == ["Star-Crossed", "Dee, Barbara"] and hist[5] == ["Holes", "Sachar, Louis"], hist)
         check("Reading History has no status buttons", pt.locator("#books .status").count() == 0)
         check("Reading History back link", pt.get_attribute("#back", "href") == "../tracker/?reader=YC")
         pt.screenshot(path=os.path.join(OUT, "9-history.png"), full_page=True)

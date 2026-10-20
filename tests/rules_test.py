@@ -81,6 +81,7 @@ check("refused: unknown status 'Ready'", not allowed(st({"status": "Ready"}, ["s
 check("refused: status 'Ebook' (spelling is EBook)", not allowed(st({"status": "Ebook"}, ["status"])))
 check("refused: date not like 2026-10-19", not allowed(st({"readOn": "10/19/2026"}, ["readOn"])))
 check("refused: reader changes the title", not allowed(st({"title": "Other"}, ["title"])))
+check("refused: reader changes logNo", not allowed(st({"logNo": 3}, ["logNo"])))
 check("refused: reader adds a new field", not allowed(st({"reason": "fun"}, ["reason"])))
 check("refused: reader adds a book", not allowed(write("/readers/YC/books/new1", BOOK, yc, exists=False)))
 check("refused: reader deletes a book", not allowed(delete("/readers/YC/books/b1", yc)))
@@ -98,6 +99,10 @@ check("import lists books", allowed(get("/readers/YC/books", imp)))
 check("import adds a book", allowed(write("/readers/YC/books/i1", dict(BOOK, title="The Accused", seriesNo=3), imp, exists=False)))
 check("refused: import adds a book with a bad status", not allowed(write("/readers/YC/books/i2", dict(BOOK, status="Ready"), imp, exists=False)))
 check("refused: import adds a 'reason' field", not allowed(write("/readers/YC/books/i3", dict(BOOK, reason="x"), imp, exists=False)))
+check("import adds a Finished book with logNo (old reading log)",
+      allowed(write("/readers/YC/books/i6", dict(BOOK, title="Holes", series="", seriesNo=None, status="Finished", logNo=5), imp, exists=False)))
+check("refused: import adds logNo that is not a whole number",
+      not allowed(write("/readers/YC/books/i7", dict(BOOK, title="Wink", logNo="5"), imp, exists=False)))
 check("refused: import adds a book with no title", not allowed(write("/readers/YC/books/i4", dict(BOOK, title=""), imp, exists=False)))
 check("refused: import changes a book", not allowed(write("/readers/YC/books/b1", {"status": "None"}, imp, mask=["status"], exists=True)))
 check("refused: import deletes a book", not allowed(delete("/readers/YC/books/b1", imp)))
@@ -124,11 +129,11 @@ def run_import(text, *flags):
 
 code, out = run_import(SAMPLE)
 n = len(iw.list_books("YC", imp))
-check("import dry run writes nothing", code == 0 and "Dry run" in out and n == 2, out)
+check("import dry run writes nothing", code == 0 and "Dry run" in out and n == 3, out)
 check("import dry run skips the book already there", "Already there, skip: 1" in out and "New, add: 3" in out, out)
 code, out = run_import(SAMPLE, "--write")
 yc_books = {b["title"]: b for b in iw.list_books("YC", imp)}
-check("import --write adds the new books", code == 0 and "Added 3 books" in out and len(yc_books) == 4, out)
+check("import --write adds the new books", code == 0 and "Added 3 books" in out and len(yc_books) == 5, out)
 a = yc_books.get("The Abduction", {})
 check("imported book has the right fields",
       a.get("status") == "EBook" and a.get("seriesNo") == 2 and a.get("updatedBy") == "import"
@@ -138,14 +143,20 @@ check("empty status becomes None; two authors kept", i.get("status") == "None" a
 h = [b for b in iw.list_books("SL", imp) if b["title"] == "Holes"]
 check("dash cells become empty series and null #", h and h[0]["series"] == "" and h[0]["seriesNo"] is None, h)
 code, out = run_import(SAMPLE, "--write")
-check("second import adds nothing", code == 0 and "Added 0 books" in out and len(iw.list_books("YC", imp)) == 4, out)
+check("second import adds nothing", code == 0 and "Added 0 books" in out and len(iw.list_books("YC", imp)) == 5, out)
 code, out = run_import(SAMPLE.replace("| ebook |", "| Ready |").replace("| SL |", "| XX |"), "--write")
 check("bad file: errors listed, nothing written",
-      code == 1 and "Ready" in out and "XX" in out and len(iw.list_books("YC", imp)) == 4, out)
+      code == 1 and "Ready" in out and "XX" in out and len(iw.list_books("YC", imp)) == 5, out)
 NO_READER = "| Title | Series | # | Author(s) |\n|---|---|---|---|\n| Ghost | Track | 1 | Reynolds, Jason |\n"
 code, out = run_import(NO_READER, "--write", "--reader", "YC")
 check("--reader YC: a file with no Reader column imports to YC",
       code == 0 and "Added 1 books" in out and "Ghost" in {b["title"] for b in iw.list_books("YC", imp)}, out)
+HISTORY = "| Log # | Title | Author(s) | Status | Finished on |\n|---|---|---|---|---|\n| 1 | Frindle | Clements, Andrew | Finished | |\n| 2 | Hoot | Hiaasen, Carl | Finished | 2026-10-13 |\n"
+code, out = run_import(HISTORY, "--write", "--reader", "YC")
+got = {b["title"]: b for b in iw.list_books("YC", imp)}
+check("history import: logNo and finishedOn saved; no logNo field on a wishlist book",
+      code == 0 and got.get("Frindle", {}).get("logNo") == 1 and got.get("Hoot", {}).get("finishedOn") == "2026-10-13"
+      and got["Frindle"].get("finishedOn") is None and "logNo" not in got.get("The Abduction", {}), out)
 env = dict(os.environ); env.pop("READS_IMPORT_PASSWORD", None)
 r = subprocess.run([sys.executable, os.path.join(REPO, "tools", "import_wishlist.py"), "/dev/null"], capture_output=True, text=True, env=env)
 check("empty file: no books found", r.returncode == 1 and "No books found" in r.stdout, r.stdout)

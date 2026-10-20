@@ -15,7 +15,7 @@ python tests/run.py
 - It prints `PASS` or `FAIL` for each check, then a total. The exit code is 1 if a check fails.
 - Screenshots (phone size, light and dark) go to `tests/out/`. That folder is not committed.
 
-Last result (Claude, 2026-10-19): 74 of 74 passed.
+Last result (Claude, 2026-10-20): 77 of 77 passed.
 
 ## What the fake Firebase does
 
@@ -26,7 +26,7 @@ Last result (Claude, 2026-10-19): 74 of 74 passed.
 ## What is covered
 
 - `run.py`: sign-in with the four people, wrong PIN, the 10-PIN lock (and that a locked PIN is not sent), sign-out, last person preselected, guarded pages, the reader list and links, unknown `reader` values, refusal of a non-reader account, no requests to the real Firestore or the Kids Games project, and no-internet messages.
-- `run.py`, wishlist and Reading History: list order, what each row shows, the status flipper, confirmation for Reading and Finished, Cancel, Undo, dates set to today, Finished books moving to Reading History, tap targets of 44 px, empty list, Firestore refusal message.
+- `run.py`, wishlist and Reading History: list order (Reading History: date, then `logNo` of the old reading log), what each row shows, the status flipper, confirmation for Reading and Finished, Cancel, Undo, dates set to today, Finished books moving to Reading History, tap targets of 44 px, empty list, Firestore refusal message.
 - `run.py`, import file: reading the `toWebWishList.md` table and the error messages (no network).
 - `rules_test.py`: what each account can read, change, add and delete; and the import script end to end (dry run, write, second import adds nothing, bad file).
 
@@ -41,7 +41,7 @@ firebase emulators:exec --config firebase/firebase.json --project demo-reads --o
 - The project ID starts with `demo-`, so the emulators never contact the real Firebase project. The test accounts and password exist only in the emulator.
 - The first run downloads the emulators (about 60 MB) from Google.
 
-Last result (Claude, 2026-10-19): 38 of 38 passed. Also checked once by hand (not in the repo): the real Firebase SDK 13.0.0 in Chromium against the emulator, with the same calls as `shared/auth.js` (offline copy, live list, status change, Undo, a refused change).
+Last result (Claude, 2026-10-20): 42 of 42 passed. Also checked once by hand (not in the repo): the real Firebase SDK 13.0.0 in Chromium against the emulator, with the same calls as `shared/auth.js` (offline copy, live list, status change, Undo, a refused change).
 
 ## Not covered
 

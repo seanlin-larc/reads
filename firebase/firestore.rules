@@ -36,15 +36,17 @@ service cloud.firestore {
       return d == null || (d is string && d.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));
     }
 
-    // A new book from the import script.
+    // A new book from the import script. logNo (optional): the place of a Finished book in
+    // the old reading log, which has no dates. Reading History uses it for the order.
     function isNewBook(d) {
       return d.keys().hasOnly(['title', 'author', 'series', 'seriesNo', 'status', 'readOn',
-                               'finishedOn', 'addedOn', 'updatedAt', 'updatedBy'])
+                               'finishedOn', 'addedOn', 'updatedAt', 'updatedBy', 'logNo'])
         && d.keys().hasAll(['title', 'author', 'series', 'seriesNo', 'status'])
         && d.title is string && d.title.size() > 0 && d.title.size() <= 300
         && d.author is string && d.author.size() <= 300
         && d.series is string && d.series.size() <= 300
         && (d.seriesNo == null || d.seriesNo is int)
+        && (d.get('logNo', null) == null || d.logNo is int)
         && isStatus(d.status)
         && isDateOrNull(d.get('readOn', null))
         && isDateOrNull(d.get('finishedOn', null))

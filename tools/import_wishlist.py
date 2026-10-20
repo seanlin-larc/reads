@@ -1,4 +1,4 @@
-"""Import books from toWebWishList.md into Firestore.
+"""Import books from toWebWishList.md (or toWebHistory.md) into Firestore.
 
 Sean writes the books in notes-with-llm/projects/yc-reading/toWebWishList.md. When Sean asks,
 Claude runs this script. The script adds each new book to readers/{code}/books in Firestore.
@@ -28,6 +28,8 @@ File format: a Markdown table. The column names can be in any order; case does n
 - Author(s): "Last, First". More than one author: "Black, Holly; Clare, Cassandra".
 - Status: None, Hold, EBook, Reading or Finished. Empty = None.
 - Optional columns "Read on" and "Finished on": dates like 2026-10-19.
+- Optional column "Log #": the place of a Finished book in an old reading log that has no
+  dates (1 = finished first). Reading History uses it for the order. Example: toWebHistory.md.
 - A cell with only "—" or "-" is empty.
 
 Standard library only. Python 3.9 or later.
@@ -49,6 +51,7 @@ COLUMNS = {
     "#": "seriesNo", "no": "seriesNo", "no.": "seriesNo", "series #": "seriesNo", "number": "seriesNo",
     "author": "author", "authors": "author", "author(s)": "author",
     "status": "status", "read on": "readOn", "finished on": "finishedOn",
+    "log #": "logNo", "log no": "logNo", "log no.": "logNo",
 }
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -101,6 +104,9 @@ def check_row(raw):
     no = raw.get("seriesNo", "")
     if no and not no.isdigit():
         problems.append(f"# '{no}' is not a whole number")
+    log = raw.get("logNo", "")
+    if log and not log.isdigit():
+        problems.append(f"Log # '{log}' is not a whole number")
     status = {s.lower(): s for s in STATUSES}.get(raw.get("status", "").lower() or "none")
     if not status:
         problems.append(f"status '{raw.get('status')}' is not one of {', '.join(STATUSES)}")
@@ -111,6 +117,7 @@ def check_row(raw):
         "reader": reader, "title": title, "author": raw.get("author", ""),
         "series": raw.get("series", ""), "seriesNo": int(no) if no.isdigit() else None,
         "status": status, "readOn": raw.get("readOn") or None, "finishedOn": raw.get("finishedOn") or None,
+        "logNo": int(log) if log.isdigit() else None,
     }
     return book, problems
 
@@ -193,6 +200,8 @@ def add_books(books, token, today):
         writes = []
         for b in books[i:i + 400]:
             fields = {k: to_value(b[k]) for k in ("title", "author", "series", "seriesNo", "status", "readOn", "finishedOn")}
+            if b.get("logNo") is not None:
+                fields["logNo"] = to_value(b["logNo"])
             fields["addedOn"] = to_value(today)
             fields["updatedBy"] = to_value("import")
             writes.append({

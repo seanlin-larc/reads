@@ -106,7 +106,8 @@ async function books() {
 }
 
 // Calls onBooks(list) now and after each change, from any phone. Each item is
-// { id, title, author, series, seriesNo, status, readOn, finishedOn }.
+// { id, title, author, series, seriesNo, status, readOn, finishedOn } (and logNo for a book
+// from the old reading log).
 // Calls onError(error) when Firestore refuses or fails. Returns a function that stops it.
 export async function watchBooks(code, onBooks, onError) {
   const { fs, db } = await books();

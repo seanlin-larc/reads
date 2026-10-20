@@ -5,18 +5,18 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 - Site: https://seanlin-larc.github.io/reads/
 - Notes and decisions: `projects/reading-tracker/` in the private `notes-with-llm` repo.
 
-## Status (2026-10-19)
+## Status (2026-10-20)
 
 | Part | Status |
 |---|---|
 | Firebase project `family-reading-f4748` | Created (Sean, 2026-10-18). See "Firebase settings" |
 | Sign-in page (`index.html`) | Built. Uses the `family-reading` project |
 | Reader list, the table of contents (`readers/`) | Built |
-| Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built (2026-10-19). Live on `main` (2026-10-19). Design: `docs/2026-10-19_data-model-and-wishlist-options.md` |
-| Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19) |
+| Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built (2026-10-19). Live on `main` (2026-10-19). Design: `docs/2026-10-19_data-model-and-wishlist-options.md`. Old reading log order (`logNo`): on branch `claude/sharp-pascal-sjrlna` (2026-10-20) |
+| Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19). Change for `logNo` (2026-10-20): **not published yet** |
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
-| Tests | `tests/run.py`: 74 of 74 passed (2026-10-19), fake Firebase. `tests/rules_test.py`: 38 of 38 passed (2026-10-19), Firebase emulators |
+| Tests | `tests/run.py`: 77 of 77 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
 ## Folder structure
 
@@ -36,7 +36,7 @@ reads/
 │   ├── firestore.rules Firestore rules. Sean publishes them in the Firebase console
 │   └── firebase.json   Emulator settings for the rules test (not for deploy)
 ├── tools/
-│   └── import_wishlist.py  Adds books from toWebWishList.md to Firestore (Claude runs it)
+│   └── import_wishlist.py  Adds books from toWebWishList.md or toWebHistory.md to Firestore (Claude runs it)
 ├── docs/               Design notes and mockups (not part of the app)
 ├── tests/              Browser tests with fake Firebase, rules test (see tests/README.md)
 ├── .nojekyll           Tells GitHub Pages not to run Jekyll
@@ -58,6 +58,8 @@ reads/
 
 - Each book is a Firestore document `readers/{code}/books/{bookId}`. Status values: `None`, `Hold`, `EBook`, `Reading`, `Finished`. Details: `docs/2026-10-19_data-model-and-wishlist-options.md`.
 - Everyone can change the status of every book. Nobody can add or delete books on the page.
+- Reading History order: books with a `finishedOn` date first, newest first. Then the books from the old reading log, which has no dates: the field `logNo` is the place in the old log (1 = finished first), highest first.
+- The old reading log comes from `notes-with-llm/projects/yc-reading/toWebHistory.md` (same table format, plus a `Log #` column). From now on, finished books come from the status flipper on the wishlist.
 - New books come from `notes-with-llm/projects/yc-reading/toWebWishList.md`. Claude runs `tools/import_wishlist.py` when Sean asks. The script signs in as `import@family-reading.invalid`. Its password is the environment variable `READS_IMPORT_PASSWORD` in the Claude Code environment settings. It is never in this repo. The file in `yc-reading/` has no Reader column; the script takes the reader (YC) from the folder name.
 
 ## Firebase settings (Sean, 2026-10-18)

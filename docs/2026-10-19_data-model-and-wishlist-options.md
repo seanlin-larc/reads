@@ -63,6 +63,7 @@ readers/{code}/books/{bookId}
 | `status` | text | `Reading` | `None`, `Hold`, `EBook`, `Reading` or `Finished`. Shown as the status button |
 | `readOn` | date text or null | `2026-10-02` | Set when the status becomes `Reading` (the checkout date) |
 | `finishedOn` | date text or null | `2026-10-25` | Set when the status becomes `Finished` (the return date) |
+| `logNo` | whole number, optional | `81` | Only for books from the old reading log, which has no dates: the place in that log, 1 = finished first. Sets the order in Reading History. Not shown. Added 2026-10-20 |
 | `addedOn` | date text | `2026-10-19` | Set by the import. Not shown |
 | `updatedAt`, `updatedBy` | server time, code | `SL` | Not shown. Records who made the last change (`import` for the import) |
 
@@ -71,7 +72,7 @@ Dates are text (`YYYY-MM-DD`), not Firestore Timestamps. A date-only Timestamp s
 | Page | Shows | Order |
 |---|---|---|
 | Wishlist (`tracker/?reader=YC`) | Status is not `Finished` | `Hold`, `EBook`, `None`, `Reading`; then series (or title) A to Z; then series number |
-| Reading History (`history/?reader=YC`) | Status is `Finished` | Newest `finishedOn` first. Books with no date go last |
+| Reading History (`history/?reader=YC`) | Status is `Finished` | Newest `finishedOn` first. Then books with no date, highest `logNo` first (newest in the old log). Then books with no date and no `logNo` |
 
 The page reads all of one person's books and filters them on the phone. This needs no Firestore index. Changes from another phone show at once.
 
@@ -86,7 +87,7 @@ The page reads all of one person's books and filters them on the phone. This nee
 | Anyone else, or signed out | No | No | No | No |
 
 - Status must be one of the five values. Dates must be like `2026-10-19`, or null.
-- A new book can have only the fields in section 3. There is no "reason" field.
+- A new book can have only the fields in section 3. There is no "reason" field. `logNo` must be a whole number or absent. Readers cannot change `logNo`.
 - The Firebase console can still delete or edit a book, because the console does not use the rules.
 - Tested with the Firestore emulator: `tests/rules_test.py` (see `tests/README.md`).
 
@@ -105,6 +106,7 @@ Sean writes the books in `notes-with-llm/projects/yc-reading/toWebWishList.md`, 
 - Columns can be in any order. Case does not matter.
 - `Status` is optional. Empty means `None`.
 - Optional columns `Read on` and `Finished on` (dates like `2026-10-19`), for books that go straight to Reading History.
+- Optional column `Log #` (field `logNo`), for books from an old reading log with no dates. Example: `notes-with-llm/projects/yc-reading/toWebHistory.md` (2026-10-20).
 - `—` or `-` means empty.
 - Text before or after the table is ignored, so the file can have notes.
 - The `Reader` column is optional. For a file in a folder named `yc-reading` (or `sl-`, `cj-`, `jy-reading`), the script takes the reader from the folder name (Sean, 2026-10-19). `--reader YC` also works, and wins over the folder name.

@@ -40,10 +40,15 @@ export function wishlist(books) {
     .sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || byName(a, b));
 }
 
-// Books in Reading History: Finished, newest first. Books with no date go last.
+// Books in Reading History: Finished, newest first.
+// - Books with a finishedOn date come first, newest date first.
+// - Then the books from the old reading log (no date): logNo is the place in the old log,
+//   1 = finished first. The highest logNo is the newest, so it comes first.
+// - Books with no date and no logNo go last.
 export function history(books) {
   return books.filter(b => b.status === 'Finished')
-    .sort((a, b) => (b.finishedOn || '').localeCompare(a.finishedOn || '') || byName(a, b));
+    .sort((a, b) => (b.finishedOn || '').localeCompare(a.finishedOn || '')
+      || (b.logNo || 0) - (a.logNo || 0) || byName(a, b));
 }
 
 function line(cls, text) {
