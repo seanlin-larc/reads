@@ -9,10 +9,10 @@ A family web app for book wishlists and library logistics, one tracker for each 
 ## Status (2026-10-20)
 
 - Live (merged to `main` 2026-10-19): sign-in page (`index.html`), reader list (`readers/`), wishlist (`tracker/?reader=CODE`), Reading History (`history/?reader=CODE`). Also on `main`: Firestore rules (`firebase/firestore.rules`, tested in the emulator, published by Sean 2026-10-19), import script (`tools/import_wishlist.py`).
-- Firebase: Email/Password with four accounts `sl@`, `cj@`, `yc@`, `jy@family-reading.invalid` (PIN = password). Sign-up and delete are off. Firestore `(default)` exists in `us-west1`. Rules from `firebase/firestore.rules` published by Sean (2026-10-19). Import account `import@family-reading.invalid` created by Sean (2026-10-19). API key Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*`.
+- Firebase: Email/Password with four accounts `sl@`, `cj@`, `yc@`, `jy@family-reading.invalid` (PIN = password). Sign-up and delete are off. Firestore `(default)` exists in `us-west1`. Rules from `firebase/firestore.rules` published by Sean (2026-10-19; again with `logNo` 2026-10-20). Import account `import@family-reading.invalid` created by Sean (2026-10-19). API key Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*`.
 - First import done (2026-10-19): 20 YC books from `toWebWishList.md` are in Firestore (1 `Reading`, 2 `EBook`, 12 `Hold`, 5 `None`). `READS_IMPORT_PASSWORD` works.
 - Waiting for Sean: test the wishlist and Reading History on the live site with a real sign-in.
-- Reading History import (2026-10-20, branch `claude/sharp-pascal-sjrlna`): 81 YC books from the Grade 6 log, in `notes-with-llm/projects/yc-reading/toWebHistory.md`. New optional field `logNo` keeps the order of the old log (no dates). Dry run done: 81 new, 0 skipped. Waiting for Sean: publish the changed rules, agree to the dry run, ask to merge. Then Claude runs the import with `--write`.
+- Reading History import (2026-10-20, branch `claude/sharp-pascal-sjrlna`): 81 YC books from the Grade 6 log, in `notes-with-llm/projects/yc-reading/toWebHistory.md`. New optional field `logNo` keeps the order of the old log (no dates). Sean published the changed rules (2026-10-20). Sean: *The Chalice of the Gods* is finished (2026-10-13); remove the second *Criminal Destiny*. Import done (2026-10-20): 81 `Finished` books, `logNo` 1 to 81. Waiting for Sean: ask to merge the branch to `main` (the live page needs the new order).
 
 ## Decisions (Sean)
 

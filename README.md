@@ -13,8 +13,8 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Sign-in page (`index.html`) | Built. Uses the `family-reading` project |
 | Reader list, the table of contents (`readers/`) | Built |
 | Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built (2026-10-19). Live on `main` (2026-10-19). Design: `docs/2026-10-19_data-model-and-wishlist-options.md`. Old reading log order (`logNo`): on branch `claude/sharp-pascal-sjrlna` (2026-10-20) |
-| Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19). Change for `logNo` (2026-10-20): **not published yet** |
-| Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books |
+| Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19). Change for `logNo` published by Sean (2026-10-20) |
+| Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Tests | `tests/run.py`: 77 of 77 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
