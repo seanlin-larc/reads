@@ -16,7 +16,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19). Change for `logNo` published by Sean (2026-10-20) |
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
-| Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Export card with Markdown and JSON (2026-10-20), branch `claude/compassionate-hopper-w12ty4`. Not on `main` yet |
+| Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Export card with Markdown and JSON (2026-10-20), branch `claude/compassionate-hopper-w12ty4`. Merged to `main` and live (2026-10-20) |
 | Tests | `tests/run.py`: 94 of 94 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
 ## Folder structure
