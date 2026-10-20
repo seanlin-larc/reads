@@ -420,6 +420,36 @@ try:
         po.wait_for_selector("#problem:not([hidden])", timeout=20000)
         check("offline: readers page shows message", "No internet" in po.text_content("#problem"))
 
+        # 13b. the page script does not start: an old copy of a shared file, or a file that does not download
+        for case, handler in [("old copy of books.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body="export const READERS = [];")),
+                              ("books.js does not download", lambda r: r.abort())]:
+            sc = b.new_context(viewport={"width": 390, "height": 844})
+            sc.route("https://www.gstatic.com/firebasejs/13.0.0/*", fake_route)
+            sc.route("**/shared/books.js", handler)
+            ps, _ = new_page(sc)
+            ps.goto(BASE + "shared/style.css")
+            ps.evaluate("db => { localStorage.setItem('fake-db', JSON.stringify(db)); localStorage.setItem('fake-auth-user', JSON.stringify({uid:'uid-sl', email:'sl@family-reading.invalid'})); }", db)
+            ps.goto(BASE + "tracker/?reader=YC")
+            ps.wait_for_selector("#loading.problem", timeout=10000)
+            check(f"page script did not start ({case}): message to reload",
+                  ps.text_content("#loading").startswith("The page did not load. Reload the page.") and ps.get_attribute("#loading", "role") == "alert",
+                  ps.text_content("#loading"))
+            if case.startswith("old"):
+                ps.screenshot(path=os.path.join(OUT, "13-not-loaded.png"))
+            sc.close()
+        sc = b.new_context(viewport={"width": 390, "height": 844})
+        sc.route("https://www.gstatic.com/firebasejs/13.0.0/*", fake_route)
+        ps, _ = new_page(sc)
+        ps.goto(BASE + "shared/style.css")
+        ps.evaluate("db => { localStorage.setItem('fake-db', JSON.stringify(db)); localStorage.setItem('fake-auth-user', JSON.stringify({uid:'uid-sl', email:'sl@family-reading.invalid'})); }", db)
+        started = []
+        for path in ["", "readers/", "tracker/?reader=YC", "history/?reader=YC"]:
+            ps.goto(BASE + path)
+            ps.wait_for_load_state("networkidle")
+            started.append(ps.evaluate("window.rdStarted === true && !document.querySelector('#loading.problem')"))
+        check("all four pages start their script and show no reload message", all(started), started)
+        sc.close()
+
         # 14. dark mode screenshot
         dk = b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
         dk.route("https://www.gstatic.com/firebasejs/13.0.0/*", fake_route)

@@ -48,6 +48,7 @@ Sean finds book recommendations with LLMs, then reviews them with YC. Chosen boo
 - Relative links only (`href="readers/"`, never `href="/readers/"`); the site is under `/reads/`.
 - Firebase web SDK 13.0.0 from `https://www.gstatic.com/firebasejs/13.0.0/`. All Firebase code goes through `shared/auth.js`; pages load it through `shared/load.js`.
 - Phone first: test at 390 px wide, light and dark. Tap targets at least 44 px.
+- Every page loads `shared/stuck.js` (a classic script) in `<head>` and has `<p id="loading">`. The page module sets `window.rdStarted = true;` right after its `import` lines. Then, if the module does not start (for example, the browser keeps an old copy of a shared file for up to 10 minutes after a change), the page shows "The page did not load. Reload the page." instead of "Loading…".
 - Device storage keys start with `rd-` and are listed in `README.md`.
 - Keep `README.md` in step with the code (status table, folder structure, keys).
 

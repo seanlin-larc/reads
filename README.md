@@ -17,7 +17,8 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Export card with Markdown and JSON (2026-10-20), branch `claude/compassionate-hopper-w12ty4`. Merged to `main` and live (2026-10-20) |
-| Tests | `tests/run.py`: 94 of 94 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
+| Reload message (`shared/stuck.js`) | Built and merged to `main` (2026-10-20). When the page script does not start (an old cached copy of a shared file, or a file that does not download), the page shows "The page did not load. Reload the page." instead of "Loading…" |
+| Tests | `tests/run.py`: 97 of 97 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
 ## Folder structure
 
@@ -32,6 +33,7 @@ reads/
 │   ├── books.js        Status values, list order, book rows and the Export card for the two book pages (no Firebase)
 │   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
+│   ├── stuck.js        "The page did not load. Reload the page." when the page script does not start (classic script)
 │   └── style.css       Shared styles, light and dark
 ├── firebase/
 │   ├── firestore.rules Firestore rules. Sean publishes them in the Firebase console
