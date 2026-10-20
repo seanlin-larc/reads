@@ -39,7 +39,7 @@
 // "Reading" and "Finished" ask once more. A Finished book leaves this list and shows in
 // Reading History (../history/). Everyone can change every list.
 import { requirePlayer, mountBar } from '../shared/load.js';
-import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, bookInfo, WISHLIST_COLUMNS, toMarkdown, download } from '../shared/books.js';
+import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, bookInfo, WISHLIST_COLUMNS, openExportCard } from '../shared/books.js';
 
 const $ = id => document.getElementById(id);
 let ctx, reader, books = [], undoTimer;
@@ -75,9 +75,9 @@ function render() {
   $('export').disabled = false;
 }
 
-// Export: the Wish List as a Markdown table file, in the same order as on the page.
+// Export: a card with two file formats (Markdown, JSON). The books are in the same order as on the page.
 $('export').addEventListener('click', () => {
-  download(reader + '-wish-list-' + today() + '.md', toMarkdown(reader + '’s Wish List', wishlist(books), WISHLIST_COLUMNS));
+  openExportCard($('export'), reader + '-wish-list-' + today(), reader + '’s Wish List', wishlist(books), WISHLIST_COLUMNS);
 });
 
 // ---------- status flipper ----------

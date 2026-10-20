@@ -8,7 +8,7 @@ Run from anywhere:  python tests/run.py
 Needs:              pip install playwright  (and Chromium for Playwright; see tests/README.md)
 Screenshots go to tests/out/ (not committed).
 """
-import os, sys, subprocess, time
+import json, os, sys, subprocess, time
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -247,17 +247,43 @@ try:
         check("row shows title, series and #, author", rows[0] == ["Angel", "Maximum Ride · #7", "Patterson, James"], rows[0])
         check("row with no series shows title and author only", rows[1] == ["The Westing Game", "Raskin, Ellen"], rows[1])
         check("Reading History link", pt.get_attribute("#historyLink", "href") == "../history/?reader=YC")
+        pt.click("#export")
+        opts = pt.eval_on_selector_all("#exportCard .flip button", "els => els.map(e => e.dataset.format)")
+        check("Export opens a card with Markdown and JSON", pt.is_visible("#exportCard") and opts == ["Markdown", "JSON"]
+              and pt.text_content("#exportTitle") == "Export YC’s Wish List", (opts, pt.text_content("#exportCard")))
+        small = pt.evaluate("[...document.querySelectorAll('#exportCard button')].map(e => e.getBoundingClientRect()).filter(r => r.height < 44).length")
+        check("Export card: tap targets at least 44 px, no horizontal scroll", small == 0 and pt.evaluate("document.documentElement.scrollWidth") <= 390, small)
+        pt.screenshot(path=os.path.join(OUT, "6b-export-card.png"))
+        pt.click("#exportCard .close")
+        check("Export card: Close closes it and saves nothing", pt.locator("#exportCard").count() == 0 and pt.locator(".shade:visible").count() == 0)
+        pt.click("#export")
+        pt.keyboard.press("Escape")
+        check("Export card: Escape closes it", pt.locator("#exportCard").count() == 0)
+        pt.click("#export")
         with pt.expect_download() as dl:
-            pt.click("#export")
+            pt.click("#exportCard button[data-format=Markdown]")
         with open(dl.value.path(), encoding="utf-8") as f:
             text = f.read()
         got, errors = iw.parse(text, "YC")
+        check("Export card closes after a choice", pt.locator("#exportCard").count() == 0)
         check("wishlist Export: file name with reader and date", dl.value.suggested_filename == f"YC-wish-list-{today}.md", dl.value.suggested_filename)
         check("wishlist Export: heading, then the books in the page order",
               text.startswith("# YC’s Wish List\n") and not errors and [x["title"] for x in got] == titles(), (text, errors))
         check("wishlist Export: import script reads status, series, author, Read on",
               [(x["status"], x["series"], x["seriesNo"], x["author"], x["readOn"]) for x in got][-1] == ("Reading", "Theodore Boone", 1, "Grisham, John", "2026-10-02")
               and got[1]["series"] == "" and got[1]["seriesNo"] is None, got)
+        pt.click("#export")
+        with pt.expect_download() as dl:
+            pt.click("#exportCard button[data-format=JSON]")
+        with open(dl.value.path(), encoding="utf-8") as f:
+            data = json.load(f)
+        check("wishlist JSON: file name with reader and date", dl.value.suggested_filename == f"YC-wish-list-{today}.json", dl.value.suggested_filename)
+        check("wishlist JSON: title, date, count, books in the page order",
+              data["title"] == "YC’s Wish List" and data["exported"] == today and data["count"] == 6
+              and [x["title"] for x in data["books"]] == titles(), data)
+        check("wishlist JSON: fields of each book, empty is null",
+              data["books"][-1] == {"title": "Kid Lawyer", "series": "Theodore Boone", "seriesNo": 1, "author": "Grisham, John", "status": "Reading", "readOn": "2026-10-02"}
+              and data["books"][1]["series"] is None and data["books"][1]["seriesNo"] is None, data["books"])
         md = pt.evaluate("""async () => (await import('../shared/books.js')).toMarkdown('T', [{title: 'A | B', author: 'X,\\nY', series: '', seriesNo: null, status: 'None'}], ['Title', 'Series', '#', 'Author(s)', 'Status'])""")
         got, errors = iw.parse(md, "YC")
         check("Export: a | in a cell and a line break are kept safe", not errors and got[0]["title"] == "A | B" and got[0]["author"] == "X, Y", (md, got, errors))
@@ -316,8 +342,11 @@ try:
               hist[0][-1] == f"Read 2026-10-02 → finished {today}" and hist[1][-1] == "Read 2026-09-25 → finished 2026-10-15" and hist[2] == ["Star-Crossed", "Dee, Barbara"] and hist[5] == ["Holes", "Sachar, Louis"], hist)
         check("Reading History has no status buttons", pt.locator("#books .status").count() == 0)
         check("Reading History back link", pt.get_attribute("#back", "href") == "../tracker/?reader=YC" and pt.text_content("#back") == "← YC’s Wish List", pt.text_content("#back"))
+        pt.click("#export")
+        check("Reading History Export opens the card", pt.text_content("#exportTitle") == "Export YC’s Reading History"
+              and pt.eval_on_selector_all("#exportCard .flip button", "els => els.map(e => e.dataset.format)") == ["Markdown", "JSON"])
         with pt.expect_download() as dl:
-            pt.click("#export")
+            pt.click("#exportCard button[data-format=Markdown]")
         with open(dl.value.path(), encoding="utf-8") as f:
             text = f.read()
         got, errors = iw.parse(text, "YC")
@@ -328,6 +357,17 @@ try:
                   ("Kid Lawyer", "Finished", None, today), ("Wrath of the Triple Goddess", "Finished", None, "2026-10-15"),
                   ("Star-Crossed", "Finished", 81, None), ("Spy School", "Finished", 3, None), ("Masterminds", "Finished", 1, None), ("Holes", "Finished", None, None)],
               (text, got, errors))
+        pt.click("#export")
+        with pt.expect_download() as dl:
+            pt.click("#exportCard button[data-format=JSON]")
+        with open(dl.value.path(), encoding="utf-8") as f:
+            data = json.load(f)
+        check("Reading History JSON: file name, Log # and dates",
+              dl.value.suggested_filename == f"YC-reading-history-{today}.json" and data["count"] == 6
+              and [(x["title"], x["logNo"], x["finishedOn"]) for x in data["books"]] == [
+                  ("Kid Lawyer", None, today), ("Wrath of the Triple Goddess", None, "2026-10-15"),
+                  ("Star-Crossed", 81, None), ("Spy School", 3, None), ("Masterminds", 1, None), ("Holes", None, None)],
+              (dl.value.suggested_filename, data))
         check("Export button: 44 px tall, no horizontal scroll", pt.evaluate("document.getElementById('export').getBoundingClientRect().height") >= 44
               and pt.evaluate("document.documentElement.scrollWidth") <= 390)
         pt.screenshot(path=os.path.join(OUT, "9-history.png"), full_page=True)
@@ -358,6 +398,9 @@ try:
         pdt.screenshot(path=os.path.join(OUT, "10-wishlist-dark.png"), full_page=True)
         pdt.locator("#books .book", has_text="Angel").locator(".status").click()
         pdt.screenshot(path=os.path.join(OUT, "11-flipper-dark.png"))
+        pdt.keyboard.press("Escape")
+        pdt.click("#export")
+        pdt.screenshot(path=os.path.join(OUT, "11b-export-card-dark.png"))
         pdt.goto(BASE + "history/?reader=YC")
         pdt.wait_for_selector("#books .book")
         pdt.screenshot(path=os.path.join(OUT, "12-history-dark.png"), full_page=True)

@@ -28,7 +28,7 @@
 // One reader's Reading History: the books with status Finished, newest first.
 // Read only. A book comes here when someone sets it to Finished on the wishlist.
 import { requirePlayer, mountBar } from '../shared/load.js';
-import { readerFromUrl, history, bookInfo, today, HISTORY_COLUMNS, toMarkdown, download } from '../shared/books.js';
+import { readerFromUrl, history, bookInfo, today, HISTORY_COLUMNS, openExportCard } from '../shared/books.js';
 
 const $ = id => document.getElementById(id);
 let reader, books = [];
@@ -67,9 +67,9 @@ function render(all) {
   $('export').disabled = false;
 }
 
-// Export: the Reading History as a Markdown table file, in the same order as on the page.
+// Export: a card with two file formats (Markdown, JSON). The books are in the same order as on the page.
 $('export').addEventListener('click', () => {
-  download(reader + '-reading-history-' + today() + '.md', toMarkdown(reader + '’s Reading History', history(books), HISTORY_COLUMNS));
+  openExportCard($('export'), reader + '-reading-history-' + today(), reader + '’s Reading History', history(books), HISTORY_COLUMNS);
 });
 
 const ctx = await requirePlayer($('problem'));

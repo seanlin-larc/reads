@@ -69,16 +69,23 @@ export function bookInfo(b) {
 }
 
 // ---------- export ----------
-// Export (Sean, 2026-10-20): a Markdown table in the same format as toWebWishList.md and
-// toWebHistory.md, so tools/import_wishlist.py can read the file again.
+// Export (Sean, 2026-10-20): the Export button opens a card with two file formats.
+// - Markdown: a table in the same format as toWebWishList.md and toWebHistory.md,
+//   so tools/import_wishlist.py can read the file again.
+// - JSON: the same books and columns, for programs and LLMs.
 const CELLS = {
   'Log #': b => b.logNo, Title: b => b.title, Series: b => b.series, '#': b => b.seriesNo,
   'Author(s)': b => b.author, Status: b => b.status, 'Read on': b => b.readOn, 'Finished on': b => b.finishedOn
 };
+// The JSON name of each column (the Firestore field name).
+const KEYS = {
+  'Log #': 'logNo', Title: 'title', Series: 'series', '#': 'seriesNo',
+  'Author(s)': 'author', Status: 'status', 'Read on': 'readOn', 'Finished on': 'finishedOn'
+};
 export const WISHLIST_COLUMNS = ['Title', 'Series', '#', 'Author(s)', 'Status', 'Read on'];
 export const HISTORY_COLUMNS = ['Log #', 'Title', 'Series', '#', 'Author(s)', 'Status', 'Read on', 'Finished on'];
 
-// The text of the export file: a heading, the date, then one table row for each book.
+// The text of the Markdown file: a heading, the date, then one table row for each book.
 export function toMarkdown(heading, list, columns) {
   // A "|" in a cell would end the cell, so it becomes "\|". Line breaks become spaces.
   const cell = v => v == null ? '' : String(v).replace(/\s+/g, ' ').replace(/\|/g, '\\|');
@@ -88,9 +95,19 @@ export function toMarkdown(heading, list, columns) {
     ...list.map(b => row(columns.map(c => cell(CELLS[c](b))))), ''].join('\n');
 }
 
+// The text of the JSON file: the heading, the date, the count, then one object for each book.
+// Each book has every column of the page; an empty value is null.
+export function toJson(heading, list, columns) {
+  const books = list.map(b => Object.fromEntries(columns.map(c => {
+    const v = CELLS[c](b);
+    return [KEYS[c], v == null || v === '' ? null : v];
+  })));
+  return JSON.stringify({ title: heading, exported: today(), count: list.length, books }, null, 2) + '\n';
+}
+
 // Saves the text as a file on this device (iPhone: the Downloads folder in the Files app).
-export function download(fileName, text) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+export function download(fileName, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type: type + ';charset=utf-8' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = fileName;
@@ -98,4 +115,58 @@ export function download(fileName, text) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// The export card. It opens at the bottom of the screen with two choices, Markdown and JSON.
+// fileName has no extension, for example "YC-wish-list-2026-10-20".
+export function openExportCard(from, fileName, heading, list, columns) {
+  const shade = document.createElement('div');
+  shade.className = 'shade';
+  const card = document.createElement('div');
+  card.className = 'sheet';
+  card.id = 'exportCard';
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-modal', 'true');
+  card.setAttribute('aria-labelledby', 'exportTitle');
+  const h = document.createElement('h2');
+  h.id = 'exportTitle';
+  h.textContent = 'Export ' + heading;
+  card.append(h, line('m', (list.length === 1 ? '1 book' : list.length + ' books') + '. Choose a file format.'));
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    shade.remove();
+    card.remove();
+    if (document.contains(from)) from.focus();
+  };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const flip = document.createElement('div');
+  flip.className = 'flip';
+  for (const [name, help, ext, type, make] of [
+    ['Markdown', 'a table', '.md', 'text/markdown', toMarkdown],
+    ['JSON', 'for programs', '.json', 'application/json', toJson]
+  ]) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.format = name;
+    const small = document.createElement('small');
+    small.textContent = '· ' + help + ' (' + ext + ')';
+    btn.append(name + ' ', small);
+    btn.addEventListener('click', () => {
+      download(fileName + ext, make(heading, list, columns), type);
+      close();
+    });
+    flip.append(btn);
+  }
+  const no = document.createElement('button');
+  no.type = 'button';
+  no.className = 'close';
+  no.textContent = 'Close';
+  no.addEventListener('click', close);
+  card.append(flip, no);
+
+  shade.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  document.body.append(shade, card);
+  flip.querySelector('button').focus();
 }

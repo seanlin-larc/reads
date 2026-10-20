@@ -15,7 +15,7 @@ python tests/run.py
 - It prints `PASS` or `FAIL` for each check, then a total. The exit code is 1 if a check fails.
 - Screenshots (phone size, light and dark) go to `tests/out/`. That folder is not committed.
 
-Last result (Claude, 2026-10-20): 84 of 84 passed.
+Last result (Claude, 2026-10-20): 94 of 94 passed.
 
 ## What the fake Firebase does
 
@@ -26,7 +26,7 @@ Last result (Claude, 2026-10-20): 84 of 84 passed.
 ## What is covered
 
 - `run.py`: sign-in with the four people, wrong PIN, the 10-PIN lock (and that a locked PIN is not sent), sign-out, last person preselected, guarded pages, the reader list and links, unknown `reader` values, refusal of a non-reader account, no requests to the real Firestore or the Kids Games project, and no-internet messages.
-- `run.py`, wishlist and Reading History: list order (Reading History: date, then `logNo` of the old reading log), what each row shows, the status flipper, confirmation for Reading and Finished, Cancel, Undo, dates set to today, Finished books moving to Reading History, tap targets of 44 px, empty list, Firestore refusal message. Export on both pages: file name, book order, and that `tools/import_wishlist.py` reads the file back.
+- `run.py`, wishlist and Reading History: list order (Reading History: date, then `logNo` of the old reading log), what each row shows, the status flipper, confirmation for Reading and Finished, Cancel, Undo, dates set to today, Finished books moving to Reading History, tap targets of 44 px, empty list, Firestore refusal message. Export on both pages: the card with Markdown and JSON, Close and Escape, tap targets; for each format the file name, book order and fields; and that `tools/import_wishlist.py` reads the Markdown file back.
 - `run.py`, import file: reading the `toWebWishList.md` table and the error messages (no network).
 - `rules_test.py`: what each account can read, change, add and delete; and the import script end to end (dry run, write, second import adds nothing, bad file).
 
