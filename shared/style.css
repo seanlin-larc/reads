@@ -72,6 +72,9 @@ footer{margin-top:28px;font-size:.85rem;color:var(--muted)}
 .count{color:var(--muted);font-size:.9rem}
 .navbtn{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);
   background:var(--panel);color:inherit;text-decoration:none;font-size:.95rem}
+.listhead .btns{display:flex;gap:8px}
+button.navbtn{font:inherit;font-size:.95rem;cursor:pointer}
+button.navbtn:disabled{opacity:.55;cursor:default}
 .books{list-style:none;margin:0;padding:0 0 90px}
 .book{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:10px;margin-bottom:6px}

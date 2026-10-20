@@ -8,7 +8,7 @@
 </head>
 <body>
 <main>
-  <p><a href="../tracker/" id="back">← Wishlist</a></p>
+  <p><a href="../tracker/" id="back">← Wish List</a></p>
   <h1 id="title">Reading History</h1>
 
   <p id="loading" class="msg">Loading…</p>
@@ -16,7 +16,10 @@
 
   <section id="content" hidden>
     <div id="who"></div>
-    <div class="listhead"><span class="count" id="count"></span></div>
+    <div class="listhead">
+      <span class="count" id="count"></span>
+      <button type="button" class="navbtn" id="export" disabled>Export</button>
+    </div>
     <ul class="books" id="books" aria-label="Reading History"></ul>
   </section>
 </main>
@@ -25,9 +28,10 @@
 // One reader's Reading History: the books with status Finished, newest first.
 // Read only. A book comes here when someone sets it to Finished on the wishlist.
 import { requirePlayer, mountBar } from '../shared/load.js';
-import { readerFromUrl, history, bookInfo } from '../shared/books.js';
+import { readerFromUrl, history, bookInfo, today, HISTORY_COLUMNS, toMarkdown, download } from '../shared/books.js';
 
 const $ = id => document.getElementById(id);
+let reader, books = [];
 
 function show(problem) {
   $('count').textContent = '';
@@ -35,7 +39,8 @@ function show(problem) {
   $('problem').textContent = problem;
 }
 
-function render(books) {
+function render(all) {
+  books = all;
   const list = history(books);
   $('count').textContent = list.length === 1 ? '1 book finished' : list.length + ' books finished';
   const ul = $('books');
@@ -59,19 +64,25 @@ function render(books) {
     li.append(info);
     ul.append(li);
   }
+  $('export').disabled = false;
 }
+
+// Export: the Reading History as a Markdown table file, in the same order as on the page.
+$('export').addEventListener('click', () => {
+  download(reader + '-reading-history-' + today() + '.md', toMarkdown(reader + '’s Reading History', history(books), HISTORY_COLUMNS));
+});
 
 const ctx = await requirePlayer($('problem'));
 $('loading').hidden = true;
 if (ctx) {
-  const reader = readerFromUrl();
+  reader = readerFromUrl();
   if (!reader) {
     location.replace('../readers/');
   } else {
     document.title = reader + ' Reading History · Reads';
     $('title').textContent = reader + '’s Reading History';
     $('back').href = '../tracker/?reader=' + reader;
-    $('back').textContent = '← ' + reader + '’s wishlist';
+    $('back').textContent = '← ' + reader + '’s Wish List';
     mountBar($('who'), ctx);
     $('content').hidden = false;
     $('count').textContent = 'Loading…';

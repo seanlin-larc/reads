@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Wishlist · Reads</title>
+<title>Wish List · Reads</title>
 <link rel="stylesheet" href="../shared/style.css">
 </head>
 <body>
 <main>
   <p><a href="../readers/">← All readers</a></p>
-  <h1 id="title">Wishlist</h1>
+  <h1 id="title">Wish List</h1>
 
   <p id="loading" class="msg">Loading…</p>
   <p id="problem" class="problem" hidden role="alert"></p>
@@ -18,9 +18,12 @@
     <div id="who"></div>
     <div class="listhead">
       <span class="count" id="count"></span>
-      <a class="navbtn" id="historyLink" href="../history/">Reading History →</a>
+      <span class="btns">
+        <button type="button" class="navbtn" id="export" disabled>Export</button>
+        <a class="navbtn" id="historyLink" href="../history/">Reading History →</a>
+      </span>
     </div>
-    <ul class="books" id="books" aria-label="Wishlist"></ul>
+    <ul class="books" id="books" aria-label="Wish List"></ul>
   </section>
 </main>
 
@@ -36,7 +39,7 @@
 // "Reading" and "Finished" ask once more. A Finished book leaves this list and shows in
 // Reading History (../history/). Everyone can change every list.
 import { requirePlayer, mountBar } from '../shared/load.js';
-import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, bookInfo } from '../shared/books.js';
+import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, bookInfo, WISHLIST_COLUMNS, toMarkdown, download } from '../shared/books.js';
 
 const $ = id => document.getElementById(id);
 let ctx, reader, books = [], undoTimer;
@@ -54,7 +57,7 @@ function render() {
   if (!list.length) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = 'No books on the wishlist.';
+    li.textContent = 'No books on the Wish List.';
     ul.append(li);
   }
   for (const b of list) {
@@ -69,7 +72,13 @@ function render() {
     li.append(bookInfo(b), btn);
     ul.append(li);
   }
+  $('export').disabled = false;
 }
+
+// Export: the Wish List as a Markdown table file, in the same order as on the page.
+$('export').addEventListener('click', () => {
+  download(reader + '-wish-list-' + today() + '.md', toMarkdown(reader + '’s Wish List', wishlist(books), WISHLIST_COLUMNS));
+});
 
 // ---------- status flipper ----------
 let opener = null;
@@ -171,8 +180,8 @@ if (ctx) {
   if (!reader) {
     location.replace('../readers/');
   } else {
-    document.title = reader + ' wishlist · Reads';
-    $('title').textContent = reader + '’s wishlist';
+    document.title = reader + '’s Wish List · Reads';
+    $('title').textContent = reader + '’s Wish List';
     $('historyLink').href = '../history/?reader=' + reader;
     mountBar($('who'), ctx);
     $('content').hidden = false;

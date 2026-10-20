@@ -143,7 +143,7 @@ try:
         pg.wait_for_selector("#content:not([hidden])")
         pg.click('.readers a[href="../tracker/?reader=JY"]')
         pg.wait_for_selector("#content:not([hidden])")
-        check("tracker title for JY", pg.text_content("#title") == "JY’s wishlist", pg.text_content("#title"))
+        check("tracker title for JY", pg.text_content("#title") == "JY’s Wish List", pg.text_content("#title"))
         check("tracker bar shows YC", "Signed in as YC" in pg.text_content("#who"))
         pg.screenshot(path=os.path.join(OUT, "3-tracker.png"))
 
@@ -239,7 +239,7 @@ try:
         tap_status = lambda t: pt.locator("#books .book", has_text=t).locator(".status").click()
         writes = lambda: pt.evaluate("JSON.parse(localStorage.getItem('fake-writes') || '[]')")
         today = pt.evaluate("new Date().toLocaleDateString('en-CA')")
-        check("wishlist title for YC", pt.text_content("#title") == "YC’s wishlist", pt.text_content("#title"))
+        check("wishlist title for YC", pt.text_content("#title") == "YC’s Wish List" and pt.title() == "YC’s Wish List · Reads", [pt.text_content("#title"), pt.title()])
         check("wishlist order: Hold, EBook, None, Reading at the bottom",
               titles() == ["Angel", "The Westing Game", "The Abduction", "The Activist", "Ghost", "Kid Lawyer"], titles())
         check("wishlist hides Finished books; count", pt.text_content("#count") == "6 books", pt.text_content("#count"))
@@ -247,6 +247,20 @@ try:
         check("row shows title, series and #, author", rows[0] == ["Angel", "Maximum Ride · #7", "Patterson, James"], rows[0])
         check("row with no series shows title and author only", rows[1] == ["The Westing Game", "Raskin, Ellen"], rows[1])
         check("Reading History link", pt.get_attribute("#historyLink", "href") == "../history/?reader=YC")
+        with pt.expect_download() as dl:
+            pt.click("#export")
+        with open(dl.value.path(), encoding="utf-8") as f:
+            text = f.read()
+        got, errors = iw.parse(text, "YC")
+        check("wishlist Export: file name with reader and date", dl.value.suggested_filename == f"YC-wish-list-{today}.md", dl.value.suggested_filename)
+        check("wishlist Export: heading, then the books in the page order",
+              text.startswith("# YC’s Wish List\n") and not errors and [x["title"] for x in got] == titles(), (text, errors))
+        check("wishlist Export: import script reads status, series, author, Read on",
+              [(x["status"], x["series"], x["seriesNo"], x["author"], x["readOn"]) for x in got][-1] == ("Reading", "Theodore Boone", 1, "Grisham, John", "2026-10-02")
+              and got[1]["series"] == "" and got[1]["seriesNo"] is None, got)
+        md = pt.evaluate("""async () => (await import('../shared/books.js')).toMarkdown('T', [{title: 'A | B', author: 'X,\\nY', series: '', seriesNo: null, status: 'None'}], ['Title', 'Series', '#', 'Author(s)', 'Status'])""")
+        got, errors = iw.parse(md, "YC")
+        check("Export: a | in a cell and a line break are kept safe", not errors and got[0]["title"] == "A | B" and got[0]["author"] == "X, Y", (md, got, errors))
         pt.screenshot(path=os.path.join(OUT, "6-wishlist.png"), full_page=True)
 
         tap_status("Angel")
@@ -301,11 +315,25 @@ try:
         check("Reading History shows read and finished dates",
               hist[0][-1] == f"Read 2026-10-02 → finished {today}" and hist[1][-1] == "Read 2026-09-25 → finished 2026-10-15" and hist[2] == ["Star-Crossed", "Dee, Barbara"] and hist[5] == ["Holes", "Sachar, Louis"], hist)
         check("Reading History has no status buttons", pt.locator("#books .status").count() == 0)
-        check("Reading History back link", pt.get_attribute("#back", "href") == "../tracker/?reader=YC")
+        check("Reading History back link", pt.get_attribute("#back", "href") == "../tracker/?reader=YC" and pt.text_content("#back") == "← YC’s Wish List", pt.text_content("#back"))
+        with pt.expect_download() as dl:
+            pt.click("#export")
+        with open(dl.value.path(), encoding="utf-8") as f:
+            text = f.read()
+        got, errors = iw.parse(text, "YC")
+        check("Reading History Export: file name with reader and date", dl.value.suggested_filename == f"YC-reading-history-{today}.md", dl.value.suggested_filename)
+        check("Reading History Export: heading, books in the page order, Log # and dates",
+              text.startswith("# YC’s Reading History\n") and not errors
+              and [(x["title"], x["status"], x["logNo"], x["finishedOn"]) for x in got] == [
+                  ("Kid Lawyer", "Finished", None, today), ("Wrath of the Triple Goddess", "Finished", None, "2026-10-15"),
+                  ("Star-Crossed", "Finished", 81, None), ("Spy School", "Finished", 3, None), ("Masterminds", "Finished", 1, None), ("Holes", "Finished", None, None)],
+              (text, got, errors))
+        check("Export button: 44 px tall, no horizontal scroll", pt.evaluate("document.getElementById('export').getBoundingClientRect().height") >= 44
+              and pt.evaluate("document.documentElement.scrollWidth") <= 390)
         pt.screenshot(path=os.path.join(OUT, "9-history.png"), full_page=True)
         pt.goto(BASE + "tracker/?reader=JY")
         pt.wait_for_selector("#books .empty")
-        check("empty wishlist message", pt.text_content("#books .empty") == "No books on the wishlist.")
+        check("empty wishlist message", pt.text_content("#books .empty") == "No books on the Wish List.")
         pt.goto(BASE + "history/?reader=Guest")
         pt.wait_for_url(BASE + "readers/")
         check("history: unknown reader goes back to readers", True)

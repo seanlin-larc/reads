@@ -67,3 +67,35 @@ export function bookInfo(b) {
   if (b.author) box.append(line('m', b.author));
   return box;
 }
+
+// ---------- export ----------
+// Export (Sean, 2026-10-20): a Markdown table in the same format as toWebWishList.md and
+// toWebHistory.md, so tools/import_wishlist.py can read the file again.
+const CELLS = {
+  'Log #': b => b.logNo, Title: b => b.title, Series: b => b.series, '#': b => b.seriesNo,
+  'Author(s)': b => b.author, Status: b => b.status, 'Read on': b => b.readOn, 'Finished on': b => b.finishedOn
+};
+export const WISHLIST_COLUMNS = ['Title', 'Series', '#', 'Author(s)', 'Status', 'Read on'];
+export const HISTORY_COLUMNS = ['Log #', 'Title', 'Series', '#', 'Author(s)', 'Status', 'Read on', 'Finished on'];
+
+// The text of the export file: a heading, the date, then one table row for each book.
+export function toMarkdown(heading, list, columns) {
+  // A "|" in a cell would end the cell, so it becomes "\|". Line breaks become spaces.
+  const cell = v => v == null ? '' : String(v).replace(/\s+/g, ' ').replace(/\|/g, '\\|');
+  const row = values => '| ' + values.join(' | ') + ' |';
+  return ['# ' + heading, '', 'Exported ' + today() + ' from Reads. ' + list.length + (list.length === 1 ? ' book.' : ' books.'), '',
+    row(columns), row(columns.map(() => '---')),
+    ...list.map(b => row(columns.map(c => cell(CELLS[c](b))))), ''].join('\n');
+}
+
+// Saves the text as a file on this device (iPhone: the Downloads folder in the Files app).
+export function download(fileName, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

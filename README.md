@@ -16,7 +16,8 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19). Change for `logNo` published by Sean (2026-10-20) |
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
-| Tests | `tests/run.py`: 77 of 77 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
+| Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Not on `main` yet |
+| Tests | `tests/run.py`: 84 of 84 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
 ## Folder structure
 
@@ -28,7 +29,7 @@ reads/
 ├── history/index.html  One person's Reading History (Finished books), for example history/?reader=YC
 ├── shared/
 │   ├── auth.js         Firebase: config, sign-in, sign-out, who is signed in, books (Firestore)
-│   ├── books.js        Status values, list order and book rows for the two book pages (no Firebase)
+│   ├── books.js        Status values, list order, book rows and Export for the two book pages (no Firebase)
 │   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
 │   └── style.css       Shared styles, light and dark
@@ -60,6 +61,7 @@ reads/
 - Everyone can change the status of every book. Nobody can add or delete books on the page.
 - Reading History order: books with a `finishedOn` date first, newest first. Then the books from the old reading log, which has no dates: the field `logNo` is the place in the old log (1 = finished first), highest first.
 - The old reading log comes from `notes-with-llm/projects/yc-reading/toWebHistory.md` (same table format, plus a `Log #` column). From now on, finished books come from the status flipper on the wishlist.
+- **Export:** the Wish List and Reading History pages each have an "Export" button. It saves a Markdown file, for example `YC-wish-list-2026-10-20.md` or `YC-reading-history-2026-10-20.md`. The file has a heading, the date, and one table row for each book, in the same order as on the page. The table has the same format as `toWebWishList.md` and `toWebHistory.md`, so `tools/import_wishlist.py` can read it. On an iPhone, the file goes to Downloads in the Files app.
 - New books come from `notes-with-llm/projects/yc-reading/toWebWishList.md`. Claude runs `tools/import_wishlist.py` when Sean asks. The script signs in as `import@family-reading.invalid`. Its password is the environment variable `READS_IMPORT_PASSWORD` in the Claude Code environment settings. It is never in this repo. The file in `yc-reading/` has no Reader column; the script takes the reader (YC) from the folder name.
 
 ## Firebase settings (Sean, 2026-10-18)
