@@ -14,7 +14,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Reader list, the table of contents (`readers/`) | Built |
 | Wishlist (`tracker/?reader=YC`) and Reading History (`history/?reader=YC`) | Built (2026-10-19). Live on `main` (2026-10-19). Design: `docs/2026-10-19_data-model-and-wishlist-options.md`. Old reading log order (`logNo`): live on `main` (2026-10-20) |
 | Firestore rules (`firebase/firestore.rules`) | Written and tested in the emulator. Published by Sean (2026-10-19). Change for `logNo` published by Sean (2026-10-20) |
-| Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Second import done (2026-10-21): 6 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
+| Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Second import done (2026-10-21): 6 YC books. Third import done (2026-10-22): 15 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Export card with Markdown and JSON (2026-10-20), branch `claude/compassionate-hopper-w12ty4`. Merged to `main` and live (2026-10-20) |
 | Reload message (`shared/stuck.js`) | Built and merged to `main` (2026-10-20). When the page script does not start (an old cached copy of a shared file, or a file that does not download), the page shows "The page did not load. Reload the page." instead of "Loading…" |
