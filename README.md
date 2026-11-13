@@ -17,7 +17,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Second import done (2026-10-21): 6 YC books. Third import done (2026-10-22): 15 YC books. Fourth import done (2026-11-13): 3 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Export card with Markdown and JSON (2026-10-20), branch `claude/compassionate-hopper-w12ty4`. Merged to `main` and live (2026-10-20) |
-| Sort button (Wish List and Reading History) | Built (2026-11-13), branch `claude/eager-ramanujan-7oe2y7`. Not on `main` yet |
+| Sort button (Wish List and Reading History) | Built (2026-11-13), branch `claude/eager-ramanujan-7oe2y7`. Tested by Sean on `localhost` (2026-11-13). Merged to `main` and live (2026-11-13) |
 | Reload message (`shared/stuck.js`) | Built and merged to `main` (2026-10-20). When the page script does not start (an old cached copy of a shared file, or a file that does not download), the page shows "The page did not load. Reload the page." instead of "Loading…" |
 | Tests | `tests/run.py`: 109 of 109 passed (2026-11-13), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
