@@ -5,7 +5,7 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 - Site: https://seanlin-larc.github.io/reads/
 - Notes and decisions: `projects/reading-tracker/` in the private `notes-with-llm` repo.
 
-## Status (2026-10-20)
+## Status (2026-11-13)
 
 | Part | Status |
 |---|---|
@@ -17,8 +17,9 @@ Family reading trackers: wishlists, library holds and checkouts, for each family
 | Import script (`tools/import_wishlist.py`) | Built. Import account made by Sean (2026-10-19). First import done (2026-10-19): 20 YC books. Second import done (2026-10-21): 6 YC books. Third import done (2026-10-22): 15 YC books. Fourth import done (2026-11-13): 3 YC books. Reading History import done (2026-10-20): 81 YC books from the Grade 6 log |
 | GitHub Pages | On (Sean, 2026-10-18). `main` / `(root)` |
 | Wish List title ("YC’s Wish List") and Export buttons | Built (2026-10-20), branch `claude/zen-davinci-06pl0h`. Export card with Markdown and JSON (2026-10-20), branch `claude/compassionate-hopper-w12ty4`. Merged to `main` and live (2026-10-20) |
+| Sort button (Wish List and Reading History) | Built (2026-11-13), branch `claude/eager-ramanujan-7oe2y7`. Not on `main` yet |
 | Reload message (`shared/stuck.js`) | Built and merged to `main` (2026-10-20). When the page script does not start (an old cached copy of a shared file, or a file that does not download), the page shows "The page did not load. Reload the page." instead of "Loading…" |
-| Tests | `tests/run.py`: 97 of 97 passed (2026-10-20), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
+| Tests | `tests/run.py`: 109 of 109 passed (2026-11-13), fake Firebase. `tests/rules_test.py`: 42 of 42 passed (2026-10-20), Firebase emulators |
 
 ## Folder structure
 
@@ -30,7 +31,7 @@ reads/
 ├── history/index.html  One person's Reading History (Finished books), for example history/?reader=YC
 ├── shared/
 │   ├── auth.js         Firebase: config, sign-in, sign-out, who is signed in, books (Firestore)
-│   ├── books.js        Status values, list order, book rows and the Export card for the two book pages (no Firebase)
+│   ├── books.js        Status values, list order, Sort, book rows and the Export card for the two book pages (no Firebase)
 │   ├── load.js         Loads auth.js with a time limit, page guard, signed-in bar (no Firebase)
 │   ├── lock.js         Wrong-PIN lock on this device (no Firebase)
 │   ├── stuck.js        "The page did not load. Reload the page." when the page script does not start (classic script)
@@ -62,6 +63,13 @@ reads/
 - Each book is a Firestore document `readers/{code}/books/{bookId}`. Status values: `None`, `Hold`, `EBook`, `Reading`, `Finished`. Details: `docs/2026-10-19_data-model-and-wishlist-options.md`.
 - Everyone can change the status of every book. Nobody can add or delete books on the page.
 - Reading History order: books with a `finishedOn` date first, newest first. Then the books from the old reading log, which has no dates: the field `logNo` is the place in the old log (1 = finished first), highest first.
+- **Sort** (Sean, 2026-11-13): the Wish List and Reading History pages each have a "Sort" button. A tap opens the phone's own drop list with three choices. The button shows "Sort" for the default order, and "Sort: Title" or "Sort: Series" for the other two.
+  - Wish List: Default (Status), Title A–Z, Series A–Z (#1, #2, #3 …).
+  - Reading History: Default (Finished date), Title A–Z, Series A–Z (… #3, #2, #1).
+  - Title A–Z uses the full title: "The Bronze Key" is under T. Capital and small letters are the same; "Book 2" comes before "Book 10".
+  - Series: books with no series come last, title A–Z. In a series, a book with no number comes after the numbered books.
+  - The choice stays while the page is open, also after a status change. A reload goes back to the default order. The choice is not kept on the device.
+  - Export uses the order on the page, so the file follows the Sort choice.
 - The old reading log comes from `notes-with-llm/projects/yc-reading/toWebHistory.md` (same table format, plus a `Log #` column). From now on, finished books come from the status flipper on the wishlist.
 - **Export:** the Wish List and Reading History pages each have an "Export" button. It opens a card with two file formats, Markdown and JSON (Sean, 2026-10-20). Close, Escape or a tap outside the card closes it. On an iPhone, the file goes to Downloads in the Files app. Both files have the books in the same order as on the page.
   - Markdown, for example `YC-wish-list-2026-10-20.md` or `YC-reading-history-2026-10-20.md`: a heading, the date, and one table row for each book. The table has the same format as `toWebWishList.md` and `toWebHistory.md`, so `tools/import_wishlist.py` can read it.

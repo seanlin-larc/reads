@@ -289,6 +289,48 @@ try:
         check("Export: a | in a cell and a line break are kept safe", not errors and got[0]["title"] == "A | B" and got[0]["author"] == "X, Y", (md, got, errors))
         pt.screenshot(path=os.path.join(OUT, "6-wishlist.png"), full_page=True)
 
+        # Sort (Sean, 2026-11-13): the Sort button opens a drop list with three choices.
+        sort_opts = pt.eval_on_selector_all("#sort option", "els => els.map(e => [e.value, e.textContent])")
+        check("wishlist Sort: three choices, default first",
+              sort_opts == [["default", "Default (Status)"], ["title", "Title A–Z"], ["series", "Series A–Z (#1, #2, #3 …)"]]
+              and pt.input_value("#sort") == "default" and pt.text_content("#sortName") == "Sort", sort_opts)
+        box = pt.evaluate("[document.querySelector('.sort'), document.getElementById('sort')].map(e => { const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })")
+        check("wishlist Sort: the drop list covers the whole button (inside the 1 px border), 44 px tall",
+              all(abs(x - y) <= 2 for x, y in zip(box[0], box[1])) and box[0][3] >= 44, box)
+        pt.select_option("#sort", "title")
+        check("wishlist Sort Title A–Z", titles() == ["Angel", "Ghost", "Kid Lawyer", "The Abduction", "The Activist", "The Westing Game"]
+              and pt.text_content("#sortName") == "Sort: Title", (titles(), pt.text_content("#sortName")))
+        pt.select_option("#sort", "series")
+        check("wishlist Sort Series: series A–Z, #1, #2, #4, then no series", titles() == ["Angel", "Kid Lawyer", "The Abduction", "The Activist", "Ghost", "The Westing Game"]
+              and pt.text_content("#sortName") == "Sort: Series", titles())
+        pt.screenshot(path=os.path.join(OUT, "6c-wishlist-sorted.png"), full_page=True)
+        pt.click("#export")
+        with pt.expect_download() as dl:
+            pt.click("#exportCard button[data-format=JSON]")
+        with open(dl.value.path(), encoding="utf-8") as f:
+            data = json.load(f)
+        check("wishlist Sort: Export follows the order on the page", [x["title"] for x in data["books"]] == titles(), data["books"])
+        tap_status("Angel")
+        pt.click("#sheet .flip button:has-text('EBook')")
+        check("wishlist Sort: the order stays after a status change", titles()[0] == "Angel" and status_of("Angel") == "EBook", titles())
+        pt.click("#undoBtn")
+        pt.select_option("#sort", "default")
+        check("wishlist Sort Default: status order again", titles() == ["Angel", "The Westing Game", "The Abduction", "The Activist", "Ghost", "Kid Lawyer"]
+              and pt.text_content("#sortName") == "Sort", titles())
+        got = pt.evaluate("""async () => {
+          const m = await import('../shared/books.js');
+          const b = (title, series, seriesNo, status) => ({ title, series, seriesNo, status });
+          const list = [b('Book 10', '', null, 'Finished'), b('book 2', '', null, 'Finished'), b('Z Two', 'Alpha', 2, 'Finished'),
+                        b('Z Seven', 'Alpha', 7, 'Finished'), b('Z None', 'Alpha', null, 'Finished'), b('A Ten', 'alpha', 10, 'Finished')];
+          const t = l => l.map(x => x.title);
+          return [t(m.history(list, 'series')), t(m.history(list, 'title')),
+                  t(m.wishlist(list.map(x => ({ ...x, status: 'None' })), 'series'))];
+        }""")
+        check("Sort functions: Reading History series #10, #7, #2, then no number, then no series; numbers in titles; capital letters",
+              got == [["A Ten", "Z Seven", "Z Two", "Z None", "book 2", "Book 10"],
+                      ["A Ten", "book 2", "Book 10", "Z None", "Z Seven", "Z Two"],
+                      ["Z Two", "Z Seven", "A Ten", "Z None", "book 2", "Book 10"]], got)
+
         tap_status("Angel")
         opts = pt.eval_on_selector_all("#sheet .flip button", "els => els.map(e => [e.firstChild.textContent.trim(), e.getAttribute('aria-pressed')])")
         check("status button opens the flipper with 5 statuses",
@@ -368,6 +410,18 @@ try:
                   ("Kid Lawyer", None, today), ("Wrath of the Triple Goddess", None, "2026-10-15"),
                   ("Star-Crossed", 81, None), ("Spy School", 3, None), ("Masterminds", 1, None), ("Holes", None, None)],
               (dl.value.suggested_filename, data))
+        check("Reading History Sort: three choices, default first",
+              pt.eval_on_selector_all("#sort option", "els => els.map(e => e.textContent)") == ["Default (Finished date)", "Title A–Z", "Series A–Z (… #3, #2, #1)"])
+        pt.select_option("#sort", "series")
+        hs = lambda: pt.eval_on_selector_all("#books .book .t", "els => els.map(e => e.textContent)")
+        check("Reading History Sort Series: series A–Z, then no series A–Z",
+              hs() == ["Wrath of the Triple Goddess", "Kid Lawyer", "Holes", "Masterminds", "Spy School", "Star-Crossed"] and pt.text_content("#sortName") == "Sort: Series", hs())
+        pt.select_option("#sort", "title")
+        check("Reading History Sort Title A–Z",
+              hs() == ["Holes", "Kid Lawyer", "Masterminds", "Spy School", "Star-Crossed", "Wrath of the Triple Goddess"], hs())
+        pt.screenshot(path=os.path.join(OUT, "9b-history-sorted.png"), full_page=True)
+        pt.select_option("#sort", "default")
+        check("Reading History Sort Default: finished date again", hs()[:3] == ["Kid Lawyer", "Wrath of the Triple Goddess", "Star-Crossed"], hs())
         check("Export button: 44 px tall, no horizontal scroll", pt.evaluate("document.getElementById('export').getBoundingClientRect().height") >= 44
               and pt.evaluate("document.documentElement.scrollWidth") <= 390)
         pt.screenshot(path=os.path.join(OUT, "9-history.png"), full_page=True)

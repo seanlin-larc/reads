@@ -18,7 +18,17 @@
   <section id="content" hidden>
     <div id="who"></div>
     <div class="listhead">
-      <span class="count" id="count"></span>
+      <span class="lead">
+        <span class="count" id="count"></span>
+        <label class="navbtn sort">
+          <span id="sortName" aria-hidden="true">Sort</span>
+          <select id="sort" aria-label="Sort" disabled>
+            <option value="default" data-short="Sort">Default (Status)</option>
+            <option value="title" data-short="Sort: Title">Title A–Z</option>
+            <option value="series" data-short="Sort: Series">Series A–Z (#1, #2, #3 …)</option>
+          </select>
+        </label>
+      </span>
       <span class="btns">
         <button type="button" class="navbtn" id="export" disabled>Export</button>
         <a class="navbtn" id="historyLink" href="../history/">Reading History →</a>
@@ -40,7 +50,7 @@
 // "Reading" and "Finished" ask once more. A Finished book leaves this list and shows in
 // Reading History (../history/). Everyone can change every list.
 import { requirePlayer, mountBar } from '../shared/load.js';
-import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, bookInfo, WISHLIST_COLUMNS, openExportCard } from '../shared/books.js';
+import { STATUSES, HELP, CONFIRM, today, readerFromUrl, wishlist, setUpSort, bookInfo, WISHLIST_COLUMNS, openExportCard } from '../shared/books.js';
 window.rdStarted = true;   // the page script started (see shared/stuck.js)
 
 const $ = id => document.getElementById(id);
@@ -52,7 +62,7 @@ function show(problem) {
 }
 
 function render() {
-  const list = wishlist(books);
+  const list = wishlist(books, $('sort').value);
   $('count').textContent = list.length === 1 ? '1 book' : list.length + ' books';
   const ul = $('books');
   ul.textContent = '';
@@ -74,12 +84,15 @@ function render() {
     li.append(bookInfo(b), btn);
     ul.append(li);
   }
-  $('export').disabled = false;
+  $('export').disabled = $('sort').disabled = false;
 }
+
+// Sort (Sean, 2026-11-13): Default (Status), Title A–Z, Series A–Z (#1, #2, #3 …).
+setUpSort(render);
 
 // Export: a card with two file formats (Markdown, JSON). The books are in the same order as on the page.
 $('export').addEventListener('click', () => {
-  openExportCard($('export'), reader + '-wish-list-' + today(), reader + '’s Wish List', wishlist(books), WISHLIST_COLUMNS);
+  openExportCard($('export'), reader + '-wish-list-' + today(), reader + '’s Wish List', wishlist(books, $('sort').value), WISHLIST_COLUMNS);
 });
 
 // ---------- status flipper ----------

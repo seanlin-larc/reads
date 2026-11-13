@@ -18,8 +18,20 @@
   <section id="content" hidden>
     <div id="who"></div>
     <div class="listhead">
-      <span class="count" id="count"></span>
-      <button type="button" class="navbtn" id="export" disabled>Export</button>
+      <span class="lead">
+        <span class="count" id="count"></span>
+        <label class="navbtn sort">
+          <span id="sortName" aria-hidden="true">Sort</span>
+          <select id="sort" aria-label="Sort" disabled>
+            <option value="default" data-short="Sort">Default (Finished date)</option>
+            <option value="title" data-short="Sort: Title">Title A–Z</option>
+            <option value="series" data-short="Sort: Series">Series A–Z (… #3, #2, #1)</option>
+          </select>
+        </label>
+      </span>
+      <span class="btns">
+        <button type="button" class="navbtn" id="export" disabled>Export</button>
+      </span>
     </div>
     <ul class="books" id="books" aria-label="Reading History"></ul>
   </section>
@@ -29,7 +41,7 @@
 // One reader's Reading History: the books with status Finished, newest first.
 // Read only. A book comes here when someone sets it to Finished on the wishlist.
 import { requirePlayer, mountBar } from '../shared/load.js';
-import { readerFromUrl, history, bookInfo, today, HISTORY_COLUMNS, openExportCard } from '../shared/books.js';
+import { readerFromUrl, history, setUpSort, bookInfo, today, HISTORY_COLUMNS, openExportCard } from '../shared/books.js';
 window.rdStarted = true;   // the page script started (see shared/stuck.js)
 
 const $ = id => document.getElementById(id);
@@ -41,9 +53,8 @@ function show(problem) {
   $('problem').textContent = problem;
 }
 
-function render(all) {
-  books = all;
-  const list = history(books);
+function render() {
+  const list = history(books, $('sort').value);
   $('count').textContent = list.length === 1 ? '1 book finished' : list.length + ' books finished';
   const ul = $('books');
   ul.textContent = '';
@@ -66,12 +77,15 @@ function render(all) {
     li.append(info);
     ul.append(li);
   }
-  $('export').disabled = false;
+  $('export').disabled = $('sort').disabled = false;
 }
+
+// Sort (Sean, 2026-11-13): Default (Finished date), Title A–Z, Series A–Z (… #3, #2, #1).
+setUpSort(render);
 
 // Export: a card with two file formats (Markdown, JSON). The books are in the same order as on the page.
 $('export').addEventListener('click', () => {
-  openExportCard($('export'), reader + '-reading-history-' + today(), reader + '’s Reading History', history(books), HISTORY_COLUMNS);
+  openExportCard($('export'), reader + '-reading-history-' + today(), reader + '’s Reading History', history(books, $('sort').value), HISTORY_COLUMNS);
 });
 
 const ctx = await requirePlayer($('problem'));
@@ -89,7 +103,7 @@ if (ctx) {
     $('content').hidden = false;
     $('count').textContent = 'Loading…';
     try {
-      await ctx.auth.watchBooks(reader, render, e => {
+      await ctx.auth.watchBooks(reader, list => { books = list; render(); }, e => {
         console.warn('[reads] Books did not load:', e);
         show(e && e.code === 'permission-denied'
           ? 'Firestore refused access to the books. The Firestore rules may not be published yet.'

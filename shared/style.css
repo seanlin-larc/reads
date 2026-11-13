@@ -109,3 +109,13 @@ button.navbtn:disabled{opacity:.55;cursor:default}
   border-radius:12px;padding:6px 6px 6px 12px;font-size:.9rem}
 .undo button{font:inherit;min-height:44px;padding:0 14px;border:0;border-radius:10px;background:var(--bg);color:var(--text);
   font-weight:700;cursor:pointer}
+/* Sort button (Sean, 2026-11-13): a drop list (select) that is not visible, on top of the button face.
+   A tap anywhere on the button opens the phone's own list. font-size 16px: iPhone does not zoom in. */
+.listhead{flex-wrap:wrap}
+.listhead .lead{display:flex;align-items:center;gap:10px}
+.listhead .lead + .btns{margin-left:auto}
+.sort{position:relative;cursor:pointer}
+.sort span::after{content:" ▾";font-size:.75em}
+.sort select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.sort:has(select:disabled){opacity:.55;cursor:default}
+.sort:has(select:focus-visible){outline:3px solid var(--accent);outline-offset:2px}

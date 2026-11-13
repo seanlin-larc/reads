@@ -33,22 +33,56 @@ const byName = (a, b) =>
   || (a.seriesNo || 0) - (b.seriesNo || 0)
   || a.title.localeCompare(b.title);
 
-// Books on the wishlist: every status except Finished, in the wishlist order,
-// then by series (or title) A to Z, then by number in the series.
-export function wishlist(books) {
-  return books.filter(b => b.status !== 'Finished')
-    .sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || byName(a, b));
+// ---------- sort ----------
+// The Sort button (Sean, 2026-11-13). Each page has three choices:
+// - 'default': the order of the page (wishlist: status; Reading History: finished date).
+// - 'title':   title A to Z.
+// - 'series':  series A to Z, then the number in the series. The wishlist shows #1, #2, #3;
+//              Reading History shows #7, #6, #5 (newest first). Books with no series go last, title A to Z.
+// Text compare: capital and small letters are the same, and "2" comes before "10".
+const text = (a, b) => (a || '').localeCompare(b || '', 'en', { numeric: true, sensitivity: 'base' });
+const byTitle = (a, b) => text(a.title, b.title) || text(a.series, b.series) || (a.seriesNo || 0) - (b.seriesNo || 0);
+// down = true: highest number first. A book with no number goes after the numbered books of its series.
+const bySeries = down => (a, b) =>
+  (!a.series - !b.series)
+  || text(a.series, b.series)
+  || ((a.seriesNo == null) - (b.seriesNo == null))
+  || (down ? b.seriesNo - a.seriesNo : a.seriesNo - b.seriesNo)
+  || byTitle(a, b);
+
+// Books on the wishlist: every status except Finished.
+// Default order: Hold, EBook, None, Reading, then by series (or title) A to Z, then by number in the series.
+export function wishlist(books, sort = 'default') {
+  const list = books.filter(b => b.status !== 'Finished');
+  if (sort === 'title') return list.sort(byTitle);
+  if (sort === 'series') return list.sort(bySeries(false));
+  return list.sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || byName(a, b));
 }
 
-// Books in Reading History: Finished, newest first.
+// Books in Reading History: Finished.
+// Default order, newest first:
 // - Books with a finishedOn date come first, newest date first.
 // - Then the books from the old reading log (no date): logNo is the place in the old log,
 //   1 = finished first. The highest logNo is the newest, so it comes first.
 // - Books with no date and no logNo go last.
-export function history(books) {
-  return books.filter(b => b.status === 'Finished')
-    .sort((a, b) => (b.finishedOn || '').localeCompare(a.finishedOn || '')
-      || (b.logNo || 0) - (a.logNo || 0) || byName(a, b));
+export function history(books, sort = 'default') {
+  const list = books.filter(b => b.status === 'Finished');
+  if (sort === 'title') return list.sort(byTitle);
+  if (sort === 'series') return list.sort(bySeries(true));
+  return list.sort((a, b) => (b.finishedOn || '').localeCompare(a.finishedOn || '')
+    || (b.logNo || 0) - (a.logNo || 0) || byName(a, b));
+}
+
+// The Sort button: a drop list (<select id="sort">) on top of a button face (<span id="sortName">).
+// The drop list is not visible, but it covers the full button, so a tap opens the phone's own list.
+// The button face shows "Sort", or "Sort: Title" when the list is not in the default order.
+// onChange runs after each new choice.
+export function setUpSort(onChange) {
+  const select = document.getElementById('sort');
+  select.addEventListener('change', () => {
+    document.getElementById('sortName').textContent = select.selectedOptions[0].dataset.short;
+    onChange();
+  });
 }
 
 function line(cls, text) {

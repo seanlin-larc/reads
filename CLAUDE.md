@@ -8,6 +8,7 @@ A family web app for book wishlists and library logistics, one tracker for each 
 
 ## Status (2026-11-13)
 
+- Sort button (2026-11-13, branch `claude/eager-ramanujan-7oe2y7`, Sean asked): the Wish List and Reading History pages each have a "Sort" button with a drop list. Wish List: Default (Status), Title A–Z, Series A–Z (#1, #2, #3 …). Reading History: Default (Finished date), Title A–Z, Series A–Z (… #3, #2, #1). Not on `main` yet.
 - Live (merged to `main` 2026-10-19): sign-in page (`index.html`), reader list (`readers/`), wishlist (`tracker/?reader=CODE`), Reading History (`history/?reader=CODE`). Also on `main`: Firestore rules (`firebase/firestore.rules`, tested in the emulator, published by Sean 2026-10-19), import script (`tools/import_wishlist.py`).
 - Firebase: Email/Password with four accounts `sl@`, `cj@`, `yc@`, `jy@family-reading.invalid` (PIN = password). Sign-up and delete are off. Firestore `(default)` exists in `us-west1`. Rules from `firebase/firestore.rules` published by Sean (2026-10-19; again with `logNo` 2026-10-20). Import account `import@family-reading.invalid` created by Sean (2026-10-19). API key Websites restriction: `https://seanlin-larc.github.io/*`, `http://localhost:8000/*`.
 - First import done (2026-10-19): 20 YC books from `toWebWishList.md` are in Firestore (1 `Reading`, 2 `EBook`, 12 `Hold`, 5 `None`). `READS_IMPORT_PASSWORD` works.
@@ -30,6 +31,7 @@ A family web app for book wishlists and library logistics, one tracker for each 
   - The page manages the wishlist and Reading History only. Recommendations stay in LLM chats and `notes-with-llm/projects/yc-reading`. No `Declined` rows.
   - Add books: Sean writes `notes-with-llm/projects/yc-reading/toWebWishList.md`. The file has no Reader column; the script takes the reader from the folder name (`yc-reading` → YC, Sean 2026-10-19). When Sean asks, Claude runs `python tools/import_wishlist.py <file>` (dry run), shows the result, then runs it with `--write` after Sean agrees.
   - Page title: "YC’s Wish List" (Sean, 2026-10-20). Export button on the Wish List and Reading History pages (Sean, 2026-10-20). Export file formats: Markdown and JSON; the Export button opens a card with these two choices (Sean, 2026-10-20). The Markdown columns (import format) and the JSON fields: chosen by Claude.
+  - Sort button with a drop list on the Wish List and Reading History pages (Sean, 2026-11-13). The details (title with "The", books with no series, no saved choice): chosen by Claude, see `README.md`.
   - Not needed for now: remove a book, edit a book, move a finished book back to the wishlist.
 - Separate Firebase project from Kids Games, no Guest account. (2026-10-18)
 - The wishlist intentionally has no "reason for the recommendation" field. Books not chosen from a recommendation list are not "rejected"; they may fit another time. (2026-10-16)
